@@ -10,7 +10,7 @@ use OurNet::FuzzyIndex;
 
 =head1 NAME
 
-OurNet::ChatBot - A ChatBot using the OurBot(tm) engine.
+OurNet::ChatBot - Context-free interactive Q&A engine
 
 =head1 SYNOPSIS
 
@@ -224,10 +224,9 @@ Autrijus Tang E<lt>autrijus@autrijus.org>
 
 =head1 COPYRIGHT
 
-Copyright 2000 by Autrijus Tang E<lt>autrijus@autrijus.org>.
+Copyright 2001 by Autrijus Tang E<lt>autrijus@autrijus.org>.
 
 All rights reserved.  You can redistribute and/or modify
-this module under the same terms as Perl itself for
-non-commercial uses.
+this module under the same terms as Perl itself.
 
 =cut

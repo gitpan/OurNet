@@ -6,12 +6,12 @@ $OurNet::BBS::VERSION = "0.1";
 use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/backend bbsroot brdshmkey maxboard sessionshmkey maxsession
-    _cache/;
+              usershmkey maxuser _cache/;
 use OurNet::BBS::Utils;
 
 =head1 NAME
 
-OurNet::BBS - BBS Component Object Model
+OurNet::BBS - Component Object Model for BBS systems
 
 =head1 SYNOPSIS
 
@@ -82,6 +82,13 @@ sub refresh_sessions {
 			 $self->{sessionshmkey}, $self->{maxsession});
 }
 
+sub refresh_users {
+    my ($self, $key) = @_;
+
+    return $self->fillin($key, 'UserGroup', $self->{bbsroot},
+			 $self->{usershmkey}, $self->{maxuser});
+}
+
 sub refresh_meta {
     # do nothing -- as of now
 }
@@ -111,10 +118,10 @@ Autrijus Tang E<lt>autrijus@autrijus.org>
 
 =head1 COPYRIGHT
 
-Copyright 2000 by OurInternet, Inc. (http://ourinet.com/)
+Copyright 2001 by Autrijus Tang E<lt>autrijus@autrijus.org>,
+                  Chia-Liang Kao E<lt>clkao@clkao.org>.
 
 All rights reserved.  You can redistribute and/or modify
-this module under the same terms as Perl itself for
-non-commercial uses.
+this module under the same terms as Perl itself.
 
 =cut

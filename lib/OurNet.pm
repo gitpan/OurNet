@@ -2,15 +2,27 @@
 
 package OurNet;
 
-$OurNet::VERSION = '1.4-alpha';
+$OurNet::VERSION = '1.4-alpha2';
 
 1;
 
 =head1 NAME
 
-OurNet::BBSAgent - Interface to BBS-based groupware platforms
+OurNet - Interface to BBS-based groupware platforms
 
-=head1 SYNOPSIS
+=head1 MODULES
+
+    ::BBS        bmpO    Component Object Model for BBS systems
+    ::BBSAgent   RmpO    Scriptable telnet-based virtual users
+    ::Cell       ampO    Interface-based RPC with Relay & Locating
+    ::ChatBot    RmpO    Context-free interactive Q&A engine 
+    ::FuzzyIndex RmcO    Inverted index for double-byte charsets
+    ::Query      RmpO    Perform scriptable queries via LWP
+    ::Site       RmpO    Extract web pages via templates  
+    ::Template   ampO    Template extraction and generation  
+    ::WebBuilder RmpO    HTML rendering for BBS-based services     
+
+=head1 DESCRIPTION
 
 The OurNet:* modules are interfaces to BBS-based groupware projects,
 whose platform was used in Hong Kong, China and Taiwan by est. 1 
@@ -20,26 +32,15 @@ a distributed service network, called 'OurNet'.
 Please refer to each individual modules' documentation for usage
 information. 
 
-    ::Query      RmpO    Perform scriptable queries via LWP
-    ::Site       RmpO    Extract texts with via templates  
-    ::FuzzyIndex RmcO    Fuzzy match for double-byte charsets
-    ::ChatBot    RmpO    Context-Free Interactive Q&A Engine 
-    ::BBSAgent   RmpO    Scriptable telnet-based virtual users
-    ::Cell       ampO    Interface-based RPC with Relay & Locating
-    ::WebBuilder RmpO    Web Rendering for BBS-based services     
-    ::Template   ampO    Template Extraction and Generation  
-    ::BBS        bmpO    Component Object Model for BBS systems
-
 =head1 AUTHORS
 
 Autrijus Tang E<lt>autrijus@autrijus.org>
 
 =head1 COPYRIGHT
 
-Copyright 2000 by Autrijus Tang E<lt>autrijus@autrijus.org>.
+Copyright 2001 by Autrijus Tang E<lt>autrijus@autrijus.org>.
 
 All rights reserved.  You can redistribute and/or modify
-this module under the same terms as Perl itself for
-non-commercial uses.
+this module under the same terms as Perl itself.
 
 =cut

@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use OurNet::FuzzyIndex;
+
+my $idxfile = shift or die "Usage: $0 <indexfile> [query]\n";
+die "Cannot read $idxfile\n" unless -r $idxfile;
+undef $/;
+
+$db = OurNet::FuzzyIndex->new($idxfile);
+
+# Combine the result with another query
+my %result = $db->query(join(' ', @ARGV ? @ARGV : <>), MATCH_FUZZY);
+
+# Dump the results; note you have to call $db->getkey each time
+foreach my $idx (sort {$result{$b} <=> $result{$a}} keys(%result)) {
+    printf ("%5.1f%\t%s\n", $result{$idx}/10, $db->getkey($idx));
+}
+
+
+1;
+

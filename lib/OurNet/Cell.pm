@@ -17,7 +17,7 @@ $Debug  = 0;
 
 =head1 NAME
 
-OurNet::Cell - An ONTP Cell.
+OurNet::Cell - Interface-based RPC with relay & locating
 
 =head1 SYNOPSIS
 
@@ -532,10 +532,9 @@ Autrijus Tang E<lt>autrijus@autrijus.org>
 
 =head1 COPYRIGHT
 
-Copyright 2000 by Autrijus Tang E<lt>autrijus@autrijus.org>.
+Copyright 2001 by Autrijus Tang E<lt>autrijus@autrijus.org>.
 
 All rights reserved.  You can redistribute and/or modify
-this module under the same terms as Perl itself for
-non-commercial uses.
+this module under the same terms as Perl itself.
 
 =cut

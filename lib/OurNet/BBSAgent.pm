@@ -10,7 +10,7 @@ use Net::Telnet;
 
 =head1 NAME
 
-OurNet::BBSAgent - BBS Terminal control
+OurNet::BBSAgent - Scriptable telnet-based virtual users
 
 =head1 SYNOPSIS
 
@@ -493,10 +493,9 @@ Autrijus Tang E<lt>autrijus@autrijus.org>
 
 =head1 COPYRIGHT
 
-Copyright 2000 by Autrijus Tang E<lt>autrijus@autrijus.org>.
+Copyright 2001 by Autrijus Tang E<lt>autrijus@autrijus.org>.
 
 All rights reserved.  You can redistribute and/or modify
-this module under the same terms as Perl itself for
-non-commercial uses.
+this module under the same terms as Perl itself.
 
 =cut

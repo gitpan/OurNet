@@ -2,14 +2,27 @@
 # PENDING TODO ITEMS
 #------------------------------------------------------------------------
 
-- bin/chatbot bin/fzindex bin/sitequery bin/fzquery
-- t/BBS-BBSAgent t/FuzzyIndex
-- README
+1.4 beta:
+- better-polished bin/bbscomd, including the ability to serve as proxy
+- bbscomd authentication model
+- scripts: bin/chatbot bin/fzindex bin/sitequery bin/fzquery
+- t/LWP-Protocol-bbs
+- A better README
 - WebBuilder.pm (selective Template)
 - bundle .bbs and sample chatbot and .xml
-- integrate BBSCOM/BBSAgent/*.bbs into BBSAgent/
-- FuzzyIndex: purgemem
+- FuzzyIndex: purgemem, fix leaks
+- fix hardwired 'boards' and 'man' etc
+- session support for MAPLE2
+- PREREQ handling of PlRPC down
 
-1.5:
+1.4 release:
 
-- OurNet::Site to support OurNet::Tempalte as input
+- Template Extraction suite
+- Site.pm to support Template.pm-style templates (much cleaner)
+- integration of PlClient, PlServer, Base and Cell into Cell
+- add locating, security and session to BBSCOM-RPC.
+- more... 
+
+Please mail your ideas to autrijus@autrijus.org.
+
+

@@ -60,7 +60,7 @@ sub EXISTS {
     #     return $ego->EXISTS(${$self->{_flag}});
     # }
     # else {
-        $ego->refresh($key);
+        $ego->refresh($key, 1);
         return $ego->{_phash}[0][$key] ? 1 : 0;
     # }
 }
@@ -84,7 +84,7 @@ sub FETCH {
     }
     else {
         # print "ensues $key.\n";
-        $ego->refresh($key);
+        $ego->refresh($key, 1);
         # die "$key $#{(tied %{$hash})->{_phash}[0]}\n";
         return $ego->{_phash}[0][$key];
     }

@@ -74,9 +74,15 @@ sub TIEHASH {
         }
     }
 
-    # Automagically fill in the fields.
-    foreach my $key (keys(%{$self})) {
-        $self->{$key} = $_[$self->[0]{$key}] ;
+    if (0 and $#_ = 0 and UNIVERSAL::isa($_[0], 'HASH')) {
+        # Passed in a single hashref -- assign it!
+        %{$self} = %{$_[0]};
+    }
+    else {
+        # Automagically fill in the fields.
+        foreach my $key (keys(%{$self})) {
+            $self->{$key} = $_[$self->[0]{$key}];
+        }
     }
     # print "magic sayth $self->{recno}\n" if $class eq 'OurNet::BBS::CVIC::Article';
 
@@ -138,7 +144,7 @@ sub NEXTKEY {
 }
 
 sub refresh {
-    my ($self, $key) = @_;
+    my ($self, $key, $arrayfetch) = @_;
 
     my $ego = tied(%{$self})
         ? UNIVERSAL::isa(tied(%{$self}), 'OurNet::BBS::ArrayProxy')
@@ -149,7 +155,7 @@ sub refresh {
     my $method = 'refresh_' .
                  ($key && $ego->can("refresh_$key") ? $key : 'meta');
 
-    return $ego->$method($key);
+    return $ego->$method($key, $arrayfetch);
 }
 
 

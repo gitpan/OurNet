@@ -132,6 +132,12 @@ addentry(char *x)
     }
 }
 
+void
+en_cleanup(struct entry *en)
+{
+    free(en);
+}
+
 void extract_words(unsigned char *p) {
 	tree_init(&wordtree);
 
@@ -207,7 +213,7 @@ void parse_delim (unsigned char *p,
         last->word[2] = 0;
         cb(last->word, val, valp-val+1);
     }
-    tree_mung(&wordtree, 0);
+    tree_mung(&wordtree, (BTREE_UAR *)en_cleanup);
 }
 
 void parse_pair (unsigned char *p, PARSE_CB * callback){
@@ -215,7 +221,7 @@ void parse_pair (unsigned char *p, PARSE_CB * callback){
 
     cb = callback;
 	tree_trav(&wordtree, (BTREE_UAR *)cb_pair);
-    tree_mung(&wordtree, 0);
+    tree_mung(&wordtree, (BTREE_UAR *)en_cleanup);
 }
 
 
@@ -224,7 +230,7 @@ void parse_word (unsigned char *p, PARSE_CB * callback){
 
     cb = callback;
 	tree_trav(&wordtree, (BTREE_UAR *)cb_word);
-    tree_mung(&wordtree, 0);
+    tree_mung(&wordtree, (BTREE_UAR *)en_cleanup);
 }
 
 

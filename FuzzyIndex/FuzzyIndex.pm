@@ -13,7 +13,7 @@ bootstrap OurNet::FuzzyIndex $OurNet::FuzzyIndex::VERSION;
 
 =head1 NAME
 
-OurNet::FuzzyIndex - Inverted Index Engine using Associative Matching
+OurNet::FuzzyIndex - Inverted index for double-byte characters
 
 =head1 SYNOPSIS
 
@@ -92,7 +92,6 @@ alone. You are encouraged to write your own grep-like post filter.
 * Internal handling of locale/unicode mappings
 * Boolean / selective search using combined MATCH_* flags
 * Fix bugs concerning sub_dbs
-* Fix memory leaks
 
 =cut
 
@@ -166,7 +165,8 @@ sub new {
     }
 
     if (exists $self->{'db'}{'_deleted'}) {
-        @{$self->{'deleted'}}{split(/(....)/s, $self->{'db'}{'_deleted'})} = ();
+        $self->{'deleted'}{$_} = '' 
+            foreach (split(/(....)/s, $self->{'db'}{'_deleted'}));
     }
     else {
         $self->_store('_deleted', '');
@@ -194,6 +194,12 @@ sub new {
     return $self;
 }
 
+sub subval {
+    my $self = shift;
+
+    return ($self->{submod}, $self->{submin}, $self->{submax});
+}
+
 # ------------------------------------------------------------
 # Subroutine parse_xs([$self], $content, [$weight], [\%words])
 # ------------------------------------------------------------
@@ -204,7 +210,7 @@ sub parse_xs {
 
     _parse(
         \$_[0], $wordref, ($_[1] || 1),
-        ((defined $self) ? @{$self}{'submod', 'submin', 'submax'}
+        ((defined $self) ? $self->subval
                          : (0,0,0))
     );
 
@@ -220,8 +226,7 @@ sub parse {
     my $weight  = $_[1] || 1;
     my %words   = @_[2..$#_];
 
-    my ($mod, $min, $max) = @{$self}{'submod', 'submin', 'submax'}
-        if defined $self;
+    my ($mod, $min, $max) = $self->subval if defined $self;
 
     my ($lastpos, $strlen, $this, $next) = (0, length($_[0]));
 
@@ -270,7 +275,7 @@ sub insert {
         # Callback-based code starts here
         _insert(
             \$_[0], $id, $self->{'obj'},
-            $self->{'submod'} ? @{$self}{'submod', 'submin', 'submax'}
+            $self->{'submod'} ? $self->subval
                               : (0,0,0)
         );
     }
@@ -299,7 +304,7 @@ sub insert {
 
             $self->{'db'}{$lastkey} = $id.$lastval if $lastkey;
         } else {
-            my ($mod, $min, $max) = @{$self}{'submod', 'submin', 'submax'};
+            my ($mod, $min, $max) = $self->subval;
             my $thismod;
 
             while (my ($entry, $freq) = each %{$matchref}) {
@@ -342,7 +347,7 @@ sub query {
     my %match = ref($_[2]) ? %{$_[2]} : ();
     my %matchnext;
     my ($words, @parsed) = 0;
-    my ($mod, $min, $max) = @{$self}{'submod', 'submin', 'submax'};
+    my ($mod, $min, $max) = $self->subval;
 
     local $^W; # no warnings, thank you
 
@@ -643,7 +648,7 @@ Autrijus Tang E<lt>autrijus@autrijus.org>
 
 =head1 COPYRIGHT
 
-Copyright 2000 by Autrijus Tang E<lt>autrijus@autrijus.org>.
+Copyright 2001 by Autrijus Tang E<lt>autrijus@autrijus.org>.
 
 All rights reserved.  You can redistribute and/or modify
 this module under the same terms as Perl itself.

@@ -1,0 +1,4 @@
+#!/usr/bin/perl
+
+die "$0: not yet supported.\n";
+

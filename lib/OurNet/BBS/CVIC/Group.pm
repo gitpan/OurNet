@@ -18,7 +18,7 @@ sub refresh_meta {
     return if $self->{mtime} and stat($file)->mtime == $self->{mtime};
 
     open (GROUP, $file) or open (GROUP, "+>>$file")
-        or confess("Cannot read group file $file: $!");
+        or die("Cannot read group file $file: $!");
 
     $self->{mtime} = stat($file)->mtime;
 

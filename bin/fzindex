@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+use OurNet::FuzzyIndex;
+
+local $/;
+
+$db = OurNet::FuzzyIndex->new(shift or die "Usage: $0 <indexfile> [files | filespec]\n");
+foreach my $file (<@ARGV>) {
+    next if $db->findkey($file);
+    print "indexing $file...\n";
+    open _, $file;
+    $db->insert($file, <_> || '');
+    close _;
+}
+
+1;
+

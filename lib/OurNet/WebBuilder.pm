@@ -6,12 +6,13 @@ $OurNet::WebBuilder::VERSION = '1.2';
 use strict;
 use lib qw/./;
 
+use CGI;
 use CGI::Cookie;
 use Template;
 
 =head1 NAME
 
-OurNet::WebBuilder - An OurWeb page.
+OurNet::WebBuilder - Web rendering for BBS-based services
 
 =head1 SYNOPSIS
 
@@ -101,7 +102,7 @@ sub show {
     }
 
     if (UNIVERSAL::isa($self, __PACKAGE__) and $self->{'template'}) {
-        print $self->{'header'}."\n\n";
+        print CGI->header($self->{'header'});
         $self->{'template'}->process($self->{'filename'}, $self->{'params'})|| die $self->{'template'}->error();
 
     }
@@ -149,7 +150,7 @@ sub dotemplate {
 
         foreach my $lang (map( { ".$_" } $CGIOBJ->param('lang')), '') {
             if (-e ($dir.$filename.$extension.$lang)) {
-                $self->{'header'} = "Content-Type: text/html";
+                $self->{'header'} = "text/html";
                 $self->{'header'}.= "; charset=" . LANGS->{substr($lang, 1)}
                     if exists LANGS->{substr($lang, 1)};
 
@@ -200,7 +201,7 @@ sub dotemplate {
         return 0;
     }
     else {
-        $self->{'header'}   = "Content-Type: text/plain";
+        $self->{'header'}   = "text/plain";
         print qq{
 A Terrible error happened when parsing $info.
 
@@ -301,7 +302,6 @@ Autrijus Tang E<lt>autrijus@autrijus.org>
 Copyright 2000 by Autrijus Tang E<lt>autrijus@autrijus.org>.
 
 All rights reserved.  You can redistribute and/or modify
-this module under the same terms as Perl itself for
-non-commercial uses.
+this module under the same terms as Perl itself.
 
 =cut

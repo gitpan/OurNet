@@ -1,24 +1,27 @@
+#!/usr/bin/perl
+
 use strict;
 use Test;
+use File::Path;
+
+BEGIN { plan tests => 5 }
+
 use OurNet::BBS;
 use OurNet::BBS::PlClient;
 
-BEGIN { plan tests => 4 }
+ok(1);
 
-mkdir '/tmp';
 my $prefix = "/tmp/".rand();
-OurNet::BBS::Utils::deltree($prefix);
-mkdir $prefix or die "Cannot make $prefix";
-mkdir "$prefix/$_" or die "Cannot make $prefix/$_"
-    foreach ('bbs', 'bbs/boards', 'bbs/group', 'bbs/man', 'bbs/man/boards');
 
-open(BOARDS, ">$prefix/bbs/.BOARDS")
-    or die "Cannot make $prefix/bbs/.BOARDS : $!";
+mkpath(["$prefix/boards", "$prefix/group", "$prefix/man/boards"])
+    or die "Cannot make $prefix";
+
+open(BOARDS, ">$prefix/.BOARDS") or die "Cannot make $prefix/.BOARDS: $!";
 close BOARDS;
-    
+
 if (fork()) {
     my $BBS;
-    ok($BBS = OurNet::BBS->new('CVIC', "$prefix/bbs"));
+    ok($BBS = OurNet::BBS->new('MAPLE2', $prefix));
 
     # make a board...
     my $brd = $BBS->{boards}{test} = {
@@ -39,9 +42,12 @@ if (fork()) {
     ok(kill(1, $pid));
     ok($brd->{bm}, $brd->{title});
     ok($brd->{articles}[1]{title}, 'elephant');
+
+    rmtree($prefix);
+
 } else {
     my $count = 0;
-    while ($count++ < 5 and not -e "$prefix/bbs/boards/test/.DIR") {
+    while ($count++ < 5 and not -e "$prefix/boards/test/.DIR") {
         sleep 1;
     }
     my $brd = OurNet::BBS::PlClient->new('localhost', 2000);

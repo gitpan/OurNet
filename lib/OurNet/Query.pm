@@ -12,7 +12,7 @@ use LWP::Parallel::UserAgent;
 
 =head1 NAME
 
-OurNet::Query - A OurFind query
+OurNet::Query - Perform scriptable queries via LWP
 
 =head1 SYNOPSIS
 
@@ -149,10 +149,9 @@ Autrijus Tang E<lt>autrijus@autrijus.org>
 
 =head1 COPYRIGHT
 
-Copyright 2000 by Autrijus Tang E<lt>autrijus@autrijus.org>.
+Copyright 2001 by Autrijus Tang E<lt>autrijus@autrijus.org>.
 
 All rights reserved.  You can redistribute and/or modify
-this module under the same terms as Perl itself for
-non-commercial uses.
+this module under the same terms as Perl itself.
 
 =cut

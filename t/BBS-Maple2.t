@@ -1,25 +1,25 @@
+#!/usr/bin/perl
+
 use strict;
 use Test;
-use lib '../lib';
+use File::Path;
 
 # use a BEGIN block so we print our plan before MyModule is loaded
 BEGIN { plan tests => 24 }
 
-# Load BBS
 use OurNet::BBS;
 
 my $BBS;
 
-mkdir '/tmp';
 my $prefix = "/tmp/".rand();
-OurNet::BBS::Utils::deltree($prefix);
-mkdir $prefix or die "Cannot make $prefix";
-mkdir "$prefix/$_" or die "Cannot make $prefix/$_"
-    foreach ('bbs', 'bbs/boards', 'bbs/group', 'bbs/man', 'bbs/man/boards');
-open(BOARDS, ">$prefix/bbs/.BOARDS") or die "Cannot make $prefix/bbs/.BOARDS: $!";
+
+mkpath(["$prefix/boards", "$prefix/group", "$prefix/man/boards"])
+    or die "Cannot make $prefix";
+
+open(BOARDS, ">$prefix/.BOARDS") or die "Cannot make $prefix/.BOARDS: $!";
 close BOARDS;
 
-ok($BBS = OurNet::BBS->new('CVIC', "$prefix/bbs"));
+ok($BBS = OurNet::BBS->new('CVIC', $prefix));
 
 # make a board...
 $BBS->{boards}{test} = {
@@ -125,6 +125,7 @@ ok(!keys(%{$BBS->{groups}{rainbow}}));
 
 # delete board
 delete $BBS->{boards}{test};
-ok(!(-e '/tmp/bbs/boards/test/.DIR'));
+ok(!(-e "$prefix/boards/test/.DIR"));
 
-OurNet::BBS::Utils::deltree($prefix);
+rmtree([$prefix]);
+
