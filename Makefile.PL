@@ -10,25 +10,19 @@ WriteMakefile(
     NAME            => 'OurNet',
     DISTNAME        => 'OurNet',
     BINARY_LOCATION => 'x86/OurNet.tar.gz',
-    VERSION_FROM    => 'lib/OurNet.pm',
-    EXE_FILES       => [ <bin/*> ],
+    VERSION_FROM    => 'OurNet.pm',
 
     PREREQ_PM       => {
-        'DB_File'               => '1.72',       # FuzzyIndex
-        'File::Path'            => '1.0403',     # test scripts
-        'HTML::FromText'        => '1.005',      # BBSApp::Templator
-        'HTTP::Request::Common' => '1.16',       # Query
-        'LWP::Parallel'         => '2.49',       # Query
-        'LWP::Protocol'         => '1.36',       # LWP::Protocol::bbs
-        'Net::Telnet'           => '3.02',       # BBSAgent
-        'RPC::PlClient'         => '0.2012',     # BBSCOM
-        'Template'              => '2.00',       # Template, WebBuilder
-        'XML::Simple'           => '1.04',       # XML::Simple
+        'OurNet::FuzzyIndex'    => '1.5',
+        'OurNet::Site'          => '1.2',
+        'OurNet::BBS'           => '1.5',
+        'OurNet::BBSAgent'      => '1.5',
+        'OurNet::BBSApp'        => '0.01',
     },
 
     dist            => {
-	'COMPRESS' => 'gzip',
-	'SUFFIX'   => 'gz',
+		'COMPRESS' => 'gzip',
+		'SUFFIX'   => 'gz',
     }
 );
 

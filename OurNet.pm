@@ -1,7 +1,7 @@
-package OurNet::Site;
+package OurNet;
 require 5.005;
 
-$OurNet::VERSION = '1.4-alpha4';
+$OurNet::VERSION = '1.5';
 
 use strict;
 
@@ -13,7 +13,7 @@ OurNet - Interface to BBS-based groupware platforms
 
     # import modules automatically
     use OurNet qw/FuzzyIndex BBS BBSApp/;
-    
+
     # the rest of code...
     my $BBS = OurNet::BBS->new(@ARGV); # etc
 
@@ -22,13 +22,12 @@ OurNet - Interface to BBS-based groupware platforms
     ::BBS        bmpO    Component Object Model for BBS systems
     ::BBSApp     ampO    BBS Application platform
     ::BBSAgent   RmpO    Scriptable telnet-based virtual users
-    ::Cell       ampO    Interface-based RPC with Relay & Locating
-    ::ChatBot    RmpO    Context-free interactive Q&A engine 
+    ::ChatBot    RmpO    Context-free interactive Q&A engine
     ::FuzzyIndex RmcO    Inverted index for double-byte charsets
     ::Query      RmpO    Perform scriptable queries via LWP
-    ::Site       RmpO    Extract web pages via templates  
-    ::Template   ampO    Template extraction and generation  
-    ::WebBuilder RmpO    HTML rendering for BBS-based services     
+    ::Site       RmpO    Extract web pages via templates
+    ::Template   ampO    Template extraction and generation
+    ::WebBuilder RmpO    HTML rendering for BBS-based services
 
 =head1 SCRIPTS
 
@@ -37,21 +36,18 @@ OurNet - Interface to BBS-based groupware platforms
     bbscomd     BBS RPC daemon
     bbsappd     BBS internal application daemon
     sitequery   Metasearch using Query and Site modules
-    
+
 =head1 DESCRIPTION
 
 The OurNet:* modules are interfaces to BBS-based groupware projects,
-whose platform was used in Hong Kong, China and Taiwan by est. 1 
+whose platform was used in Hong Kong, China and Taiwan by est. 1
 million users. Used collaboratively, they glue BBSes together to form
-a distributed service network, called 'OurNet'.                  
+a distributed service network, called 'OurNet'.
 
 Please refer to each individual modules and script's documentation
-for detailed information. 
+for detailed information.
 
 =head1 CAVEATS
-
-This is pre-alpha software, i.e. we hadn't finished integration between
-the modules. So glue scripts must be used to bind them together. Sorry.
 
 The HOWTO documentation and BBSCOM API is still lacking; we'll be very
 grateful if anybody from the BBS circle could contribute to it.
@@ -60,12 +56,13 @@ grateful if anybody from the BBS circle could contribute to it.
 
 sub import {
     my $self = shift;
-    
     my $package = (caller())[0];
 
     my @failed;
-    foreach my $module (@modules) {
+
+    foreach my $module (@_) {
         eval("package $package; use OurNet::$module;");
+
         if ($@) {
             warn $@;
             push(@failed, $module);
@@ -76,7 +73,11 @@ sub import {
 }
 
 sub new {
-    die "$_[0] is not meant to be used directly";
+    my $class  = shift;
+    my $module = shift;
+
+    require "${class}/$module.pm";
+    return "${class}::$module"->new(@_);
 }
 
 =head1 AUTHORS
