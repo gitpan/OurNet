@@ -1,7 +1,7 @@
 package OurNet;
 require 5.005;
 
-$OurNet::VERSION = '1.51';
+$OurNet::VERSION = '1.52';
 
 use strict;
 
@@ -20,7 +20,7 @@ OurNet - Interface to BBS-based groupware platforms
 =head1 MODULES
 
     ::BBS        bmpO    Component Object Model for BBS systems
-    ::BBSApp     ampO    BBS Application platform
+    ::BBSApp     bmpO    BBS Application platform
     ::BBSAgent   RmpO    Scriptable telnet-based virtual users
     ::ChatBot    RmpO    Context-free interactive Q&A engine
     ::FuzzyIndex RmcO    Inverted index for double-byte charsets
@@ -31,11 +31,12 @@ OurNet - Interface to BBS-based groupware platforms
 
 =head1 SCRIPTS
 
+    bbscomd     PlClient remote access daemon
+    bbsappd     Launch BBSCOM applications
+    fianjmo     Chat with a virtual personality 
     fzindex     FuzzyIndex index utility
     fzquery     FuzzyIndex query utility
-    bbscomd     BBS RPC daemon
-    bbsappd     BBS internal application daemon
-    sitequery   Metasearch using Query and Site modules
+    sitequery   Metaseach multiple sites
 
 =head1 DESCRIPTION
 

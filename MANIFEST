@@ -2,3 +2,4 @@ Makefile.PL
 MANIFEST
 README
 OurNet.pm
+test.pl

@@ -13,29 +13,16 @@ WriteMakefile(
     VERSION_FROM    => 'OurNet.pm',
 
     PREREQ_PM       => {
-        'OurNet::FuzzyIndex'    => '1.51',
-        'OurNet::Site'          => '1.21',
-        'OurNet::BBS'           => '1.51',
-        'OurNet::BBSAgent'      => '1.51',
-        'OurNet::BBSApp'        => '0.02',
+        'OurNet::FuzzyIndex'    => '1.52',
+        'OurNet::Site'          => '1.52',
+        'OurNet::BBS'           => '1.52',
+        'OurNet::BBSAgent'      => '1.52',
+        'OurNet::BBSApp'        => '0.03',
     },
 
     dist            => {
-		'COMPRESS' => 'gzip',
-		'SUFFIX'   => 'gz',
+	'COMPRESS' => 'gzip',
+	'SUFFIX'   => 'gz',
     }
 );
-
-# Fix a bug for Win95 nmake
-if ($^O =~ /Win32/ and -e 'Makefile') {
-    local $/;
-    open _, 'Makefile';
-    my $content = <_>;
-    $content =~ s/\n\@\[\n/\n/g;
-    $content =~ s/\n\]\n/\n\n/g;
-    close _;
-    open _, '>Makefile' or exit;
-    print _ $content;
-}
-
 
