@@ -27,6 +27,7 @@ lib/OurNet/WebBuilder.pm
 lib/OurNet/BBS/ArrayProxy.pm
 lib/OurNet/BBS/Base.pm
 lib/OurNet/BBS/ScalarFile.pm
+lib/OurNet/BBS/SocketScalar.pm
 lib/OurNet/BBS/ShmScalar.pm
 lib/OurNet/BBS/Utils.pm
 lib/OurNet/BBS/PlClient.pm
@@ -43,6 +44,8 @@ lib/OurNet/BBS/CVIC/Group.pm
 lib/OurNet/BBS/CVIC/GroupGroup.pm
 lib/OurNet/BBS/CVIC/Session.pm
 lib/OurNet/BBS/CVIC/SessionGroup.pm
+lib/OurNet/BBS/CVIC/User.pm
+lib/OurNet/BBS/CVIC/UserGroup.pm
 lib/OurNet/BBS/MAPLE2/Article.pm
 lib/OurNet/BBS/MAPLE2/ArticleGroup.pm
 lib/OurNet/BBS/MAPLE2/Board.pm
@@ -50,12 +53,20 @@ lib/OurNet/BBS/MAPLE2/BoardGroup.pm
 lib/OurNet/BBS/MAPLE2/GroupGroup.pm
 lib/OurNet/BBS/MAPLE2/Session.pm
 lib/OurNet/BBS/MAPLE2/SessionGroup.pm
+lib/OurNet/BBS/MAPLE2/User.pm
+lib/OurNet/BBS/MAPLE2/UserGroup.pm
+lib/OurNet/BBS/MAPLE3/Article.pm
+lib/OurNet/BBS/MAPLE3/ArticleGroup.pm
+lib/OurNet/BBS/MAPLE3/Board.pm
+lib/OurNet/BBS/MAPLE3/BoardGroup.pm
 lib/OurNet/BBS/PTT/Article.pm
 lib/OurNet/BBS/PTT/ArticleGroup.pm
 lib/OurNet/BBS/PTT/Board.pm
 lib/OurNet/BBS/PTT/BoardGroup.pm
 lib/OurNet/BBS/PTT/Session.pm
 lib/OurNet/BBS/PTT/SessionGroup.pm
+lib/OurNet/BBS/PTT/User.pm
+lib/OurNet/BBS/PTT/UserGroup.pm
 lib/OurNet/BBSAgent/ptt2.bbs
 lib/OurNet/BBSAgent/cvic.bbs
 lib/OurNet/BBSAgent/openbazaar.bbs

@@ -6,7 +6,7 @@ $OurNet::BBS::VERSION = "0.1";
 use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/backend bbsroot brdshmkey maxboard sessionshmkey maxsession
-              usershmkey maxuser _cache/;
+              usershmkey maxuser chatport _cache/;
 use OurNet::BBS::Utils;
 
 =head1 NAME
@@ -79,7 +79,8 @@ sub refresh_sessions {
     my ($self, $key) = @_;
 
     return $self->fillin($key, 'SessionGroup', $self->{bbsroot},
-			 $self->{sessionshmkey}, $self->{maxsession});
+			 $self->{sessionshmkey}, $self->{maxsession},
+                         $self->{chatport});
 }
 
 sub refresh_users {

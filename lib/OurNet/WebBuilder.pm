@@ -5,10 +5,10 @@ $OurNet::WebBuilder::VERSION = '1.2';
 
 use strict;
 use lib qw/./;
+use vars qw/$Backend/;
 
 use CGI;
 use CGI::Cookie;
-use Template;
 
 =head1 NAME
 
@@ -92,19 +92,23 @@ sub new {
 sub show {
     my $self = shift;
 
-    if (my $lang = $self->dotemplate) {
-        # foreach my $key (@{$self->{'params'}}) {
-        #    if (UNIVERSAL::isa($key, "HASH") and exists($key->{$lang})) {
-        #        $key = $key->{$lang};
-        #    }
-        # }
-        # $self->{'template'}->param(@{$self->{'params'}});
+    if (my $lang = $self->dotemplate and $Backend eq 'HTML::Template') {
+        foreach my $key (%{$self->{'params'}}) {
+            if (UNIVERSAL::isa($key, "HASH") and exists($key->{$lang})) {
+                $key = $key->{$lang};
+            }
+        }
+        $self->{'template'}->param(%{$self->{'params'}});
     }
 
     if (UNIVERSAL::isa($self, __PACKAGE__) and $self->{'template'}) {
         print CGI->header($self->{'header'});
-        $self->{'template'}->process($self->{'filename'}, $self->{'params'})|| die $self->{'template'}->error();
-
+        if ($Backend eq 'HTML::Template') {
+            print $self->{'template'}->output;
+        }
+        else {
+            $self->{'template'}->process($self->{'filename'}, $self->{'params'})|| die $self->{'template'}->error();
+        }
     }
 }
 
@@ -122,6 +126,10 @@ sub dotemplate {
 
     if (defined $self->{'template'}) {
         if (UNIVERSAL::isa($self->{'template'}, 'Template')) {
+            # Template object already specified: populate CGI if must
+            push(@{$self->{'template'}->{'options'}{'associate'}}, $CGIOBJ);
+        }
+        elsif (UNIVERSAL::isa($self->{'template'}, 'HTML::Template')) {
             # Template object already specified: populate CGI if must
             push(@{$self->{'template'}->{'options'}{'associate'}}, $CGIOBJ);
         }
@@ -153,14 +161,24 @@ sub dotemplate {
                 $self->{'header'} = "text/html";
                 $self->{'header'}.= "; charset=" . LANGS->{substr($lang, 1)}
                     if exists LANGS->{substr($lang, 1)};
-
-                $self->{'template'} = Template->new(
-                    INCLUDE_PATH => $dir,
-                    INTERPOLATE  => 1,
-                    POST_CHOMP   => 1,
-                );
-
-                $self->{'filename'} = $filename.$extension.$lang;
+                    
+                if ($Backend eq 'HTML::Template') {
+                    require HTML::Template;
+                    $self->{'template'} = HTML::Template->new(
+                        filename  => $dir.$filename.$extension.$lang,
+                        associate => $CGIOBJ,
+                        cache     => $self->{'cache'}
+                    );
+                }
+                else {
+                    require Template;
+                    $self->{'template'} = Template->new(
+                        INCLUDE_PATH => $dir,
+                        INTERPOLATE  => 1,
+                        POST_CHOMP   => 1,
+                    );
+                    $self->{'filename'} = $filename.$extension.$lang;
+                }
 
                 return $lang ? substr($lang, 1) : 1;
             }
@@ -172,13 +190,25 @@ sub dotemplate {
     if (my @list = <$dir$filename$extension.??-??> and (-e $dir.'error_lang')) {
         $self->{'header'} = "Content-Type: text/html; charset=iso-8859-1";
 
-        $self->{'template'} = Template->new(
-            INCLUDE_PATH => $dir,
-            INTERPOLATE  => 1,
-            POST_CHOMP   => 1,
-        );
-
-        $self->{'filename'} = 'error_lang';
+        if ($Backend eq 'HTML::Template') {
+            require HTML::Template;
+            $self->{'template'} = HTML::Template->new(
+                filename  => $dir.'error_lang',
+                associate => $CGIOBJ,
+                cache     => $self->{'cache'}
+            );
+        }
+        else {
+            require Template;
+            $self->{'template'} = Template->new(
+                INCLUDE_PATH => $dir,
+                INTERPOLATE  => 1,
+                POST_CHOMP   => 1,
+            );
+    
+            $self->{'filename'} = 'error_lang';
+        }
+        
 
         @{$self->{'params'}}{qw/title url langs/} = (
             'Available Languages for: '.$CGIOBJ->param('lang'),
@@ -189,10 +219,24 @@ sub dotemplate {
         return 0;
     }
     elsif (-e $dir.'error_url') {
-        $self->{'template'} = HTML::Template->new(
-                                  filename => $dir.'error_url',
-                                  cache     => $self->{'cache'}
-                              );
+        if ($Backend eq 'HTML::Template') {
+            require HTML::Template;
+            $self->{'template'} = HTML::Template->new(
+                filename  => $dir.'error_url',
+                associate => $CGIOBJ,
+                cache     => $self->{'cache'}
+            );
+        }
+        else {
+            require Template;
+            $self->{'template'} = Template->new(
+                INCLUDE_PATH => $dir,
+                INTERPOLATE  => 1,
+                POST_CHOMP   => 1,
+            );
+    
+            $self->{'filename'} = 'error_url';
+        }
 
         @{$self->{'params'}}{qw/title url/} = (
             'Address error', $path,

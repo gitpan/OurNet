@@ -277,7 +277,7 @@ sub insert {
             \$_[0], $id, $self->{'obj'},
             $self->{'submod'} ? $self->subval
                               : (0,0,0)
-        );
+        ) if length($_[0]);
     }
     else {
         my $matchref = $_[0];
@@ -348,12 +348,15 @@ sub query {
     my %matchnext;
     my ($words, @parsed) = 0;
     my ($mod, $min, $max) = $self->subval;
+    my $done;
 
     local $^W; # no warnings, thank you
 
-    _parse_q(\$_[0], '    ', sub {push @parsed, @_});
+    _parse_q(\$_[0], '    ', sub  {
+        return if $done;
+        
+        my ($qk, $qv) = @_;
 
-    while (my($qk, $qv) = splice(@parsed, 0, 2)) {
         return if ($mod and (ord(substr($qk, -1)) % $mod < $min or
                              ord(substr($qk, -1)) % $mod > $max));
 
@@ -466,10 +469,10 @@ sub query {
 
         if ($flag == MATCH_EXACT) {
             %match = %matchnext;
-            last unless %matchnext;
+            $done++ unless %matchnext; # XXX
             %matchnext = ();
         }
-    };
+    });
 
     if ($words > 1) {
         foreach my $key (keys(%match)) {
@@ -490,7 +493,7 @@ sub sync {
         $self->{'subobj'}[$num]->sync();
     }
 
-    return $self->{'obj'}->sync();
+    return $self->{'obj'}->sync() if $self->{'obj'};
 }
 
 # ------------------------------------------

@@ -2,7 +2,7 @@
 
 package OurNet;
 
-$OurNet::VERSION = '1.4-alpha2';
+$OurNet::VERSION = '1.4-alpha3';
 
 1;
 

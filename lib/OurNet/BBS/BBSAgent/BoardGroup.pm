@@ -25,10 +25,8 @@ sub refresh_meta {
         $self->{bbsobj}->main();
     }
 
-    require OurNet::BBS::BBSAgent::Board;
-
     if ($key) {
-        $self->{_cache}{$key} ||= OurNet::BBS::BBSAgent::Board->new(
+        $self->{_cache}{$key} ||= $self->module('Board')->new(
             $self->{bbsobj},
             $key
         );

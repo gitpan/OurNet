@@ -86,7 +86,7 @@ unsigned int arg2len;
 
         PUTBACK ;
         /* Call the Perl sub to process the callback */
-        call_method("put", G_DISCARD) ;
+        call_method("DB_File::put", G_DISCARD) ;
 
 }
 

@@ -2,37 +2,32 @@ package OurNet::BBS::MAPLE2::Board;
 
 $OurNet::BBS::MAPLE2::Board::VERSION = "0.1";
 
-# XXX vote, man, note, etc...
+use strict;
 use File::stat;
-use vars qw/%filemap $backend $packstring $packsize @packlist/;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot board shmid shm recno mtime _cache/;
 
-$backend = 'MAPLE2';
-$packstring = 'Z13Z49Z39Z11LZ3CLL';
-$packsize = 128;
-@packlist = qw/id title bm pad bupdate pad2 bvote vtime level/;
+my $packsize   = OurNet::BBS::Base::getvar('BoardGroup::packsize');
+my $packstring = OurNet::BBS::Base::getvar('BoardGroup::packstring');
+my @packlist   = OurNet::BBS::Base::getvar('BoardGroup::packlist');
 
 sub refresh_articles {
     my $self = shift;
 
-    require "OurNet/BBS/${backend}/ArticleGroup.pm";
-
-    return $self->{_cache}{articles} ||=
-        "OurNet::BBS::${backend}::ArticleGroup"->new(
-            $self->{bbsroot}, $self->{board}, 'boards'
-        );
+    return $self->{_cache}{articles} ||= $self->module('ArticleGroup')->new(
+        $self->{bbsroot}, $self->{board}, 'boards'
+    );
 }
 
 sub refresh_archives {
     my $self = shift;
-    require "OurNet/BBS/${backend}/ArticleGroup.pm";
 
-    return $self->{_cache}{archives} ||=
-        "OurNet::BBS::${backend}::ArticleGroup"->new(
-            $self->{bbsroot}, $self->{board}, 'man/boards'
-        );
+    return $self->{_cache}{archives} ||= $self->module('ArticleGroup')->new(
+        $self->{bbsroot}, $self->{board}, 'man/boards'
+    );
 }
+
+sub post_new_board {};
 
 sub refresh_meta {
     my ($self, $key) = @_;
@@ -95,6 +90,7 @@ sub refresh_meta {
             print DIR pack($packstring, @{$self->{_cache}}{@packlist});
 
             close DIR;
+	    $self->post_new_board();
         }
     }
 

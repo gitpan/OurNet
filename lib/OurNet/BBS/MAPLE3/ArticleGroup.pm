@@ -1,39 +1,52 @@
-package OurNet::BBS::MAPLE2::ArticleGroup;
+package OurNet::BBS::MAPLE3::ArticleGroup;
+$VERSION = "0.1";
 
-$OurNet::BBS::MAPLE2::ArticleGroup::VERSION = "0.1";
-
+use strict;
+#use base qw/OurNet::BBS::MAPLE2::ArticleGroup/;
+#use fields qw/_cache _phash/;
 use File::stat;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot board basepath name dir recno mtime btime _cache _phash/;
 use vars qw/$packstring $packsize @packlist/;
 
-$packstring = 'Z33Z1Z14Z6Z73C';
-$packsize   = 128;
-@packlist   = qw/id savemode author date title filemode/;
+$packstring = 'LLLZ32Z80Z50Z9Z73';
+$packsize   = 256;
+@packlist   = qw/time xmode xid id author nick date title/;
+
+1;
 
 sub basedir {
     my $self = shift;
     return join('/', $self->{bbsroot}, $self->{basepath},
                      $self->{board}, $self->{dir});
 }
-			     
+
+sub stamp {
+    my $chrono = shift;
+    my $str = '';
+    for (1..7) {
+	$str = ((0..9,'A'..'V')[$chrono & 31]) . $str;
+	$chrono >>= 5;
+    }
+    return 'A'.$str;
+}
+
 sub new_id {
     my $self = shift;
     my ($id, $file);
 
-    while ($id = "D.".(scalar time).".A") {
-        $file = join('/', $self->basedir(), $id);
+    while ($id = stamp(time())) {
+        $file = join('/', $self->basedir(), substr($id, -1), $id);
         last unless -e $file;
         sleep 1;
     }
 
-    mkdir join('/', $self->basedir(), $self->{name});
     return $id;
 }
 
 sub refresh_id {
     my ($self, $key) = @_;
-
+die "$self: refresh $key\n";
     $self->{name} ||= $self->new_id();
 
     my $file = join('/', $self->basedir(), '.DIR');
@@ -94,13 +107,12 @@ sub refresh_meta {
     my $file = join('/', $self->basedir(), $self->{name}, '.DIR');
     my $name;
 
-    if ($key and index(" recno savemode author date title filemode ", " $key ") > -1) {
+    if ($key and index(' '.join(' ',@packlist).' ', " $key ") > -1) {
         goto &refresh_id;
     }
     elsif (!defined($key) and $self->{dir}) {
         $self->refresh_id;
     }
-
     if ($key and $key ne int($key)) {
         # hash key -- no recaching needed
         return if $self->{_phash}[0][0]{$key};
@@ -127,10 +139,9 @@ sub refresh_meta {
         return if $key < 1 or $key > int(stat($file)->size / $packsize);
 
         seek DIR, $packsize * ($key-1), 0;
-        read DIR, $name, 33;
-        $name = unpack('Z33', $name);
+        read DIR, $name, 44;
+        $name = unpack('x12Z32', $name);
         # print "$name unpacked\n";
-
         return if $self->{_phash}[0][0]{$name} == $key;
 
         my $obj = $self->module(substr($name, 0, 2) eq 'D.'
@@ -152,12 +163,10 @@ sub refresh_meta {
 
     return if $self->{mtime} and stat($file)->mtime == $self->{mtime};
     $self->{mtime} = stat($file)->mtime;
-
     $self->{_phash}[0] = fields::phash(map {
         seek DIR, $packsize * $_, 0;
-        read DIR, $name, 33;
-        $name = unpack('Z33', $name);
-
+        read DIR, $name, 44;
+        $name = unpack('x12Z32', $name);
         # return the thing
         ($name, $self->module(substr($name, 0, 2) eq 'D.'
             ? 'ArticleGroup' : 'Article')->new(
@@ -180,7 +189,7 @@ sub STORE {
 
     local $^W = 0; # turn off warnings
 
-    if ($key and index(" recno savemode author date title filemode ", " $key ") > -1) {
+    if ($key and index(' '.join(' ', @packlist).' ', " $key ") > -1) {
         $self->refresh($key);
         $self->{_cache}{$key} = $value;
 
@@ -241,10 +250,9 @@ sub EXISTS {
 
     my $board;
     foreach (0..int(stat($file)->size / $packsize)-1) {
-        print '.';
         seek DIR, $packsize * $_, 0;
-        read DIR, $board, 33;
-        return 1 if unpack('Z33', $board) eq $key;
+        read DIR, $board, 44;
+        return 1 if unpack('x12Z32', $board) eq $key;
     }
 
     close DIR;

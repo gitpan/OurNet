@@ -33,11 +33,22 @@ sub STORE {
     my $self     = shift;
     my $filename = $self->[0];
     
-    if (defined($self->[2] = shift)) {
-        open FILE, ">$filename" or die "cannot write $filename: $!";
-        print FILE $self->[2];
-        close FILE;
+    if (defined($_[0])) {
+        if (length($_[0]) >= length($self->[2]) and substr($_[0], 0,
+            length($self->[2])) eq $self->[2]) 
+        {
+            # append mode
+            open FILE, ">>$filename" or die "cannot append $filename: $!";
+            print FILE substr($_[0], length($self->[2]));
+            close FILE;
+        }
+        else {
+            open FILE, ">$filename" or die "cannot write $filename: $!";
+            print FILE $self->[2];
+            close FILE;
+        }
         $self->[1] = (stat($filename))[9];
+        $self->[2] = $_[0];
     }
     else {
         # store undef: kill the file

@@ -10,8 +10,6 @@ use fields qw/bbsobj board basepath _cache _phash/;
 sub refresh_meta {
     my ($self, $key) = @_;
 
-    require OurNet::BBS::BBSAgent::Article;
-
     if ($key and $key ne int($key)) {
         # hash key -- no recaching needed
         die 'hash key not implemented (!)';
@@ -23,7 +21,7 @@ sub refresh_meta {
         return if $key < 1 or $key > int($self->{bbsobj}->board_list_last($self->{board}));
         return if $self->{_phash}[0][0]{$key};
 
-        my $obj = OurNet::BBS::BBSAgent::Article->new(
+        my $obj = $self->module('Article')->new(
                 $self->{bbsobj},
                 $self->{board},
                 $self->{basepath},
@@ -41,7 +39,7 @@ sub refresh_meta {
 
     $self->{_phash}[0] = fields::phash(map {
         # return the thing
-        ($_, OurNet::BBS::BBSAgent::Article->new(
+        ($_, $self->module('Article')->new(
                 $self->{bbsobj},
                 $self->{board},
                 $self->{basepath},

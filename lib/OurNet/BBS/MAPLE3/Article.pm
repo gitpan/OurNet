@@ -1,4 +1,4 @@
-package OurNet::BBS::MAPLE2::Article;
+package OurNet::BBS::MAPLE3::Article;
 
 $OurNet::BBS::MAPLE2::Article::VERSION = "0.1";
 
@@ -16,9 +16,20 @@ sub basedir {
                      $self->{board}, $self->{dir});
 }
 
+sub stamp {
+    my $chrono = shift;
+    my $str = '';
+    for (1..7) {
+	print "[article] chrono: $chrono\n";
+	$str = ((0..9,'A'..'V')[$chrono & 31]) . $str;
+	$chrono >>= 5;
+    }
+    return 'A'.$str;
+}
+
 sub new_id {
     my $self = shift;
-    my ($id, $file);
+    my ($chrono, $file, $fname);
     
     $file = $self->basedir();
     
@@ -27,23 +38,29 @@ sub new_id {
 	close _;
     }
 
-    while ($id = "M.".(scalar time).".A") {
-	last unless -e "$file/$id";
-	sleep 1;
+    while ($chrono = time()) {
+	my $id = stamp($chrono);
+        $fname = join('/', $file, substr($id, -1), $id);
+        last unless -e $fname;
+        sleep 1;
     }
     
-    open _, ">$file/$id" or die "cannot open $file/$id";
+    open _, ">$fname" or die "cannot open $fname";
     close _;
-    
-    return $id;
+
+    return $chrono;
 }
 
 sub refresh_body {
     my $self = shift;
 
-    $self->{name} ||= $self->new_id();
+    unless ($self->{name}) {
+	$self->{_cache}{time} = $self->new_id();
+	$self->{name} = stamp($self->{_cache}{time});
+die "new id $self->{time} $self->{name}\n";
+    }
 
-    my $file = join('/', $self->basedir, $self->{name});
+    my $file = join('/', $self->basedir, substr($self->{name}, -1), $self->{name});
 
     return if $self->{btime} and stat($file)->mtime == $self->{btime}
                              and defined $self->{_cache}{body};
@@ -61,9 +78,12 @@ sub refresh_body {
 sub refresh_meta {
     my $self = shift;
 
-    $self->{name} ||= $self->new_id();
+    unless ($self->{name}) {
+	$self->{_cache}{time} = $self->new_id();
+	$self->{name} = stamp($self->{_cache}{time});
+    }
 
-    my $file = join('/', $self->basedir, $self->{name});
+    my $file = join('/', $self->basedir, substr($self->{name}, -1), $self->{name});
     return unless -e $file;
     $self->{btime} = stat($file)->mtime;
 
@@ -74,6 +94,7 @@ sub refresh_meta {
     
     local $/ = \$packsize;
     open DIR, "$file" or die "can't read DIR file for $self->{board}: $!";
+    my $filesize = stat($file)->size;
 
     if (defined $self->{recno}) {
         seek DIR, $packsize * $self->{recno}, 0;
@@ -86,25 +107,19 @@ sub refresh_meta {
     }
 
     unless (defined $self->{recno}) {
-        $self->{recno} = 0;
-        while (my $data = <DIR>) {
-            @{$self->{_cache}}{@packlist} = unpack($packstring, $data);
-            # print "$self->{_cache}{id} versus $self->{name}\n";
-            last if ($self->{_cache}{id} eq $self->{name});
-            $self->{recno}++;
-        }
+	seek DIR, 0, SEEK_END;
+        $self->{recno} = $filesize / $packsize;
         if ($self->{_cache}{id} ne $self->{name}) {
             $self->{_cache}{id} = $self->{name};
             $self->{_cache}{author}   ||= 'guest.';
             $self->{_cache}{nick}     ||= '天外來客';
-            $self->{_cache}{date}     = sprintf("%2d/%02d", (localtime)[4] + 1, (localtime)[3]);
+            $self->{_cache}{date}     = sprintf("%02d/%02d/%02d", substr((localtime)[5]+1900, -2), (localtime)[4] + 1, (localtime)[3]);
             $self->{_cache}{title}    = (substr($self->{basepath}, 0, 4) eq 'man/')
                 ? '◇ (untitled)' : '(untitled)';
             $self->{_cache}{filemode} = 0;
             open DIR, "+>>$file" or die "can't write DIR file for $self->{board}: $!";
             print DIR pack($packstring, @{$self->{_cache}}{@packlist});
             close DIR;
-            # print "Recno: ".$self->{recno}."\n";
         }
     }
 
@@ -117,7 +132,7 @@ sub STORE {
     $self->refresh_meta($key);
 
     if ($key eq 'body') {
-        my $file = join('/', $self->basedir, $self->{name});
+        my $file = join('/', $self->basedir, substr($self->{name}, -1), $self->{name});
         unless (-s $file or substr($value, 0, 6) eq '作者: ') {
             $value =
             "作者: $self->{_cache}{author} ($self->{_cache}{nick}) ".
@@ -151,6 +166,7 @@ sub STORE {
 }
 
 sub remove {
+die 'dont remove please';
     my $self = shift;
     my $file = join('/', $self->basedir, '.DIR');
 

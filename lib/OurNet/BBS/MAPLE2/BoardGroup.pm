@@ -3,12 +3,29 @@ package OurNet::BBS::MAPLE2::BoardGroup;
 $OurNet::BBS::MAPLE2::BoardGroup::VERSION = "0.1";
 
 use File::stat;
-use base qw/OurNet::BBS::Base/;
-use fields qw/bbsroot shmkey maxboard shmid shm mtime _cache/;
-use vars qw/$backend/;
 use OurNet::BBS::ShmScalar;
 
-$backend = 'MAPLE2';
+use base qw/OurNet::BBS::Base/;
+use fields qw/bbsroot shmkey maxboard shmid shm mtime _cache/;
+use vars qw/$packstring $packsize @packlist/;
+
+$packstring = 'Z13Z49Z39Z11LZ3CLL';
+$packsize   = 128;
+@packlist   = qw/id title bm pad bupdate pad2 bvote vtime level/;
+
+sub shminit {
+    my $self = shift;
+
+    if ($^O ne 'MSWin32' and
+        $self->{shmid} = shmget($self->{shmkey}, $self->{maxboard}*128+16, 0)) {
+        tie $self->{shm}{touchtime}, 'OurNet::BBS::ShmScalar',
+           $self->{shmid}, $self->{maxboard}*128+4, 4, 'L';
+        tie $self->{shm}{number}, 'OurNet::BBS::ShmScalar',
+            $self->{shmid}, $self->{maxboard}*128+8, 4, 'L';
+        tie $self->{shm}{busystate}, 'OurNet::BBS::ShmScalar',
+            $self->{shmid}, $self->{maxboard}*128+12, 4, 'L';
+    }
+}
 
 # Fetch key: id savemode author date title filemode body
 sub refresh_meta {
@@ -16,20 +33,10 @@ sub refresh_meta {
     my $file = "$self->{bbsroot}/.BOARDS";
     my $board;
 
-    unless ($self->{shmid} || !$self->{shmkey}) {
-        if ($^O ne 'MSWin32' and
-            $self->{shmid} = shmget($self->{shmkey}, $self->{maxboard}*128+8, 0)) {
-            tie $self->{shm}{touchtime}, 'OurNet::BBS::ShmScalar',
-                $self->{shmid}, $self->{maxboard}*128+4, 4, 'L';
-            tie $self->{shm}{busystate}, 'OurNet::BBS::ShmScalar',
-                $self->{shmid}, $self->{maxboard}*128+12, 4, 'L';
-        }
-    }
-    # print "[BoardGroup] no shm support" unless $self->{shm};
-    require "OurNet/BBS/${backend}/Board.pm";
+    $self->shminit unless ($self->{shmid} || !$self->{shmkey});
 
     if ($key) {
-        $self->{_cache}{$key} ||= "OurNet::BBS::${backend}::Board"->new(
+        $self->{_cache}{$key} ||= $self->module('Board')->new(
             $self->{bbsroot},
             $key,
             $self->{shmid},
@@ -48,7 +55,7 @@ sub refresh_meta {
         read DIR, $board, 13;
         $board = unpack('Z13', $board);
         next unless $board and substr($board,0,1) ne "\0";
-        $self->{_cache}{$board} ||= "OurNet::BBS::${backend}::Board"->new(
+        $self->{_cache}{$board} ||= $self->module('Board')->new(
             $self->{bbsroot},
             $board,
             $self->{shmid},
@@ -91,7 +98,7 @@ sub STORE {
             unless UNIVERSAL::isa($value, 'HASH');
 
         my $class  = (UNIVERSAL::isa($value, "UNIVERSAL"))
-            ? ref($value) : "OurNet::BBS::${backend}::Board";
+            ? ref($value) : $self->module('Board');
         my $module = "$class.pm";
 
         $module =~ s|::|/|g;

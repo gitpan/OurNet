@@ -3,24 +3,42 @@ package OurNet::BBS::MAPLE2::Session;
 $OurNet::BBS::MAPLE2::Session::VERSION = "0.1";
 
 use strict;
-use vars qw/$backend $packstring $packsize @packlist/;
 use base qw/OurNet::BBS::Base/;
-use fields qw/bbsroot recno shmid shm registered myshm _cache/;
+use fields qw/bbsroot recno shmid shm chatport registered myshm _cache/;
 use POSIX;
 
-$backend = 'MAPLE2';
-$packstring = 'LLLLLCCCx1LCCCCZ13Z11Z20Z24Z29Z11a256a64LCx3a1000LL';
-$packsize = 1476;
-
-@packlist = qw/uid pid sockaddr destuid destuip active invisible sockactive
-    userlevel mode pager in_chat sig userid chatid realname username from
-    tty friends reject uptime msgcount msgs mood site/;
+my ($packsize, $packstring, @packlist);
 
 sub refresh_meta {
     my ($self, $key) = @_;
+
+    $packsize   = $self->getvar('SessionGroup::packsize');
+    $packstring = $self->getvar('SessionGroup::packstring');
+    @packlist   = $self->getvar('SessionGroup::packlist');
+
     my $buf;
-    shmread($self->{shmid}, $buf, $packsize*$self->{recno}, $packsize);
+    shmread($self->{shmid}, $buf, $packsize*$self->{recno}, $packsize)
+        or die "shmread: $!";
     @{$self->{_cache}}{@packlist} = unpack($packstring, $buf);
+}
+
+sub refresh_chat {
+    my $self = shift;
+    return if exists $self->{_cache}{chat};
+
+    require OurNet::BBS::SocketScalar;
+    $self->refresh_meta('userid');
+
+    tie $self->{_cache}{chat}, 'OurNet::BBS::SocketScalar',
+        (index($self->{chatport}, ':') > -1) ? $self->{chatport}
+             : ('localhost', $self->{chatport});
+    print "/! 9 9 $self->{_cache}{userid} ".
+                            "$self->{_cache}{userid}\n";
+    $self->{_cache}{chat} = "/! 9 9 $self->{_cache}{userid} ".
+                            "$self->{_cache}{userid}\n";
+    $self->{_cache}{chatid} = $self->{_cache}{userid};
+
+    $self->_shmwrite();
 }
 
 sub _shmwrite {
@@ -57,6 +75,7 @@ sub STORE {
 	$self->{_cache}{msgcount}++;
 	kill SIGUSR2, $self->{_cache}{pid};
 	$self->_shmwrite();
+
 	return;
     }
     elsif ($key eq 'cb_msg') {
@@ -79,6 +98,9 @@ sub STORE {
 
 sub DESTROY {
     my $self = shift;
+    return unless exists $self->{registered}{$self->{recno}};
+    $self->{_cache}{pid} = 0;
+    $self->_shmwrite();
     delete $self->{registered}{$self->{recno}};
 }
 

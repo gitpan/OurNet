@@ -1,16 +1,25 @@
 package OurNet::BBS::MAPLE2::SessionGroup;
 
-$OurNet::BBS::MAPLE2::BoardGroup::VERSION = "0.1";
+$OurNet::BBS::MAPLE2::SessionGroup::VERSION = "0.1";
 
 use strict;
 use File::stat;
-use base qw/OurNet::BBS::Base/;
-use fields qw/bbsroot shmkey maxsession shmid shm _cache/;
-use vars qw/$backend %registered %instances/;
 use OurNet::BBS::ShmScalar;
 use POSIX;
 
-$backend = 'MAPLE2';
+use base qw/OurNet::BBS::Base/;
+use fields qw/bbsroot shmkey maxsession chatport shmid shm _cache/;
+use vars qw/$packstring $packsize @packlist/;
+
+my %registered; # registered callbacks
+my %instances;  # object instances
+
+$packstring = 'LLLLLCCCx1LCCCCZ13Z11Z20Z24Z29Z11a256a64LCx3a1000LL';
+$packsize   = 1476;
+@packlist   = qw/uid pid sockaddr destuid destuip active invisible 
+                 sockactive userlevel mode pager in_chat sig userid 
+                 chatid realname username from tty friends reject 
+                 uptime msgcount msgs mood site/;
 
 sub message_handler {
     # we don't handle multiple messages in the queue yet.
@@ -48,11 +57,10 @@ sub _unlock {
 # Fetch key: id savemode author date title filemode body
 sub refresh_meta {
     my ($self, $key) = @_;
-    require "OurNet/BBS/${backend}/Session.pm";
-    no strict 'refs';
-    my $packsize = ${"OurNet::BBS::${backend}::Session::packsize"};
+    my $packsize = $self->getvar('SessionGroup::packsize');
+
     unless ($self->{shmid} || !$self->{shmkey}) {
-        print "ASDSKD\n";
+        # print "ASDSKD\n";
         if ($^O ne 'MSWin32' and
             $self->{shmid} = shmget($self->{shmkey}, 
 				    ($self->{maxsession})*$packsize+36, 0)) {
@@ -69,11 +77,12 @@ sub refresh_meta {
     if ($key eq int($key)) {
         print "new toy called $key\n" unless $self->{_cache}{$key};
         $registered{$self} ||= {};
-        $self->{_cache}{$key} ||= "OurNet::BBS::${backend}::Session"->new(
+        $self->{_cache}{$key} ||= $self->module('Session')->new(
             $self->{bbsroot},
             $key,
             $self->{shmid},
             $self->{shm},
+            $self->{chatport},
 	    $registered{$self}, 
         );
         return;

@@ -1,6 +1,24 @@
 package OurNet::BBS::Base;
-
 use strict;
+
+sub getvar {
+    my $backend;
+    
+    if (ref($_[0])) {
+        $backend = (+shift)->backend();
+    }
+    else {
+        $backend = $1 if scalar caller() =~ m|^OurNet::BBS::(\w+)|;
+    }
+ 
+    my ($mod, $var) = split('::', $_[0], 2);
+    no strict 'refs';
+    require "OurNet/BBS/$backend/$mod.pm";
+    return wantarray ? @{"OurNet::BBS::${backend}::${mod}::${var}"}
+#                   || %{"OurNet::BBS::${backend}::${mod}::${var}"}
+                     : ${"OurNet::BBS::${backend}::${mod}::${var}"};
+} 
+    
 
 sub daemonize {
     require OurNet::BBS::PlServer;
@@ -74,9 +92,9 @@ sub TIEHASH {
         }
     }
 
-    if (0 and $#_ = 0 and UNIVERSAL::isa($_[0], 'HASH')) {
+    if ($#_ == 1 and UNIVERSAL::isa($_[1], 'HASH')) {
         # Passed in a single hashref -- assign it!
-        %{$self} = %{$_[0]};
+        %{$self} = %{$_[1]};
     }
     else {
         # Automagically fill in the fields.
@@ -158,5 +176,27 @@ sub refresh {
     return $ego->$method($key, $arrayfetch);
 }
 
+sub backend {
+    my $self = shift;
+
+    my $ego = tied(%{$self})
+        ? UNIVERSAL::isa(tied(%{$self}), 'OurNet::BBS::ArrayProxy')
+            ? tied(%{tied(%{$self})->{_hash}})
+            : tied(%{$self})
+        : $self;
+
+    my $backend = ref($ego);
+
+    $backend = $1 if $backend =~ m|^OurNet::BBS::(\w+)|;
+
+    return $backend;
+}
+
+sub module {
+    my ($self, $mod) = @_;
+    my $backend = $self->backend();
+    require "OurNet/BBS/$backend/$mod.pm";
+    return "OurNet::BBS::${backend}::${mod}";
+}
 
 1;
