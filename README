@@ -1,0 +1,136 @@
+This is the README file for libOurNet, the collection of Perl modules
+by Elixir Group and OurInternet Inc.
+
+* Installation
+
+libOurNet uses the standard perl module install process:
+
+perl Makefile.PL
+make
+make install
+
+Note that scripts in bin/ directory could be useful tutorials, too.
+
+* Copyright
+
+Copyright 2000 by OurInternet, Inc. <http://ourinet.com/>
+
+All rights reserved.  You can redistribute and/or modify
+this bundle under the same terms as Perl itself.
+
+* Introduction
+
+This is sales-talk introduction to each of OurNet::* modules. Whether
+it might be of use to you or not is unknown.
+
+This document is Copyright 2000 by OurInternet, Inc. All Rights Reserved.
+
+[OurNet::Query, OurNet::Site - Automated Fetching & Conversion Engine]
+
+The contents of most web services are formatted in ill-structured HTML,
+makes it extremely difficult to incorporate other site's services into
+your own. Even if such hand-coded attempts are made, the lack of
+streamlined representation forbids you from integrating other service's
+contents, or re-formats them into the same style.
+
+Take searching as an example: currently, most meta-search packages limits
+you to a fixed array of popular general-purpose Search Engines, and are
+incapable of take advantage of each one's unique services. The same
+limitation also applies to price-comparison services, special-purpose
+monitor sites (e.g. financial "stock watcher"), etc.
+
+OurNet::Query delivers a totally customizable engine to automatically
+monitor any web service's contents, and "wrap" them into any format -
+XML, RSS, database, or HTML templates - without any hard coding. Totally
+transparent to the end-user, they will feel as if these results are
+offered by the same source, hence makes it very easy to build a site
+filled with richly news, services and related contents.
+
+[OurNet::FuzzyIndex - Full-Text Multilingual Fuzzy Search Engine]
+
+It is often critical for a site to have its own index engine, either for
+user to search the vast amount of data, to auto-generated "related links"
+for each page, or to associate external information according to their
+contents. But traditionally, such packages comes as a fixed "black-box",
+forcing you to represent the data in a certain format, and offers no room
+for extensions or improvements.
+
+OurNet::FuzzyIndex uses Berkeley DB, a high-performance embedded database
+system used by sendmail, Netscape Navigator among others, to store its
+index data. This allows lightning-fast search speed while consuming very
+little CPU/Memory resources, makes it the ideal solution for mid-to-high
+volume service sites. It also supports a distributed databases option,
+which optimizes each query to access only a small portion of database,
+providing even more scalability.
+
+OurNet::FuzzyIndex supports multilingual contents both in Unicode or
+locale encoding, multiple query syntax/options (e.g. Exact, Boolean, Fuzzy
+& Natural Language), and a totally extensible API supporting outside
+filtering/parsing/translation components.
+
+OurNet::FuzzyIndex poses no limits as to which format the data is in, or
+where it should be stored. It accepts any source of contents, whether it's
+from a local file, a database entry, or external data fetched by
+OurNet::Query engine.
+
+[OurNet::ChatBot - Context-Free Interactive Q&A Engine]
+
+Although a search engine can find links relevant to user's queries, it
+does not provide answer to concrete questions for Q&A services, like
+Troubleshooting, Online Support, Call Center and Knowledge Bases. These
+sites usually needs an Eliza-like "virtual personality" to interact with
+user, directing them to relevant parts of the content instead of a hyperlink
+to a 100-page-long online manual.
+
+Traditionally, interactive query systems like Ask Jeeves requires a
+hierarchical structured database, extensive chat-scripts, and could only
+handle a specific domain of keywords.
+
+OurNet::ChatBot require no reformatting of existing contents at all; it can
+automatically parse paragraphs and sentences, then convert the weighted data
+into a OurNet::FuzzyIndex database. You can also specify additional parameters
+like keywords, weights and grammar at any time.
+
+OurNet::ChatBot accepts multilingual natural language questions, and provides
+the most suited answers by analyzing the index for each entry's frequency,
+relevancy and importance. Additional references and links are also included
+in the output.
+
+The Context-Free feature of OurNet::ChatBot also offers other applications
+other than Q&A services, such as to instantly turn a huge body of articles
+and speeches into a "virtual personality" of their author to chat with users!
+
+[OurNet::BBSAgent - Remote-Controlled Virtual User Engine]
+
+Besides static page-based sites, many Internet services needs to interact
+with users, like BBS, IRC, ICQ and Telnet services. There are no "search
+engines" or "portals" for these services, simply because it was very
+difficult to automatically gather their contents, or to post data on them.
+
+OurNet::BBSAgent provides an object-oriented interface to those services,
+by simulating as a "virtual user" with action defined by a script language.
+The developer could then use the same methods to access different services,
+to easily implement interactive robots, spiders, or other cross-service
+agents.
+
+The scripting language of OurNet::BBSAgent is easy to learn, powerful, and
+has both flow-control and event-driven capabilities. The engine also accepts
+action scripts written in another language. Multiple agents could be
+dispatched simultaneously with multi-threading support.
+
+[OurNet::WebBuilder - Distributed Web Service Solution]
+
+The idea is this: The program part and template part of a page should
+be seperated. The program would be named "<pagename>.pl", and uses
+OurNet::WebBuilder to populate all variables in the template part,
+plus all parameters sent by GET or POST requests.
+
+[OurNet::Directory - Hierarchical Category Service Solution]
+
+Not yet available.
+
+[OurNet::Nexus - Hierarchical Category Service Solution]
+
+Not yet available.
+
+

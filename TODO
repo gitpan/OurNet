@@ -1,0 +1,15 @@
+#------------------------------------------------------------------------
+# PENDING TODO ITEMS
+#------------------------------------------------------------------------
+
+- bin/chatbot bin/fzindex bin/sitequery bin/fzquery
+- t/BBS-BBSAgent t/FuzzyIndex
+- README
+- WebBuilder.pm (selective Template)
+- bundle .bbs and sample chatbot and .xml
+- integrate BBSCOM/BBSAgent/*.bbs into BBSAgent/
+- FuzzyIndex: purgemem
+
+1.5:
+
+- OurNet::Site to support OurNet::Tempalte as input
