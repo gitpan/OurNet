@@ -1,11 +1,12 @@
 #!/usr/bin/perl
+use lib '../lib';
 
 use strict;
 use Test;
 use File::Path;
 
 # use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 24 }
+BEGIN { plan tests => 26 }
 
 use OurNet::BBS;
 
@@ -50,11 +51,13 @@ $brd->{articles}[2] = {
     body   => 'bodie',
 };
 
-ok($brd->{articles}[2]{body}, qr/smart/);
+ok($brd->{articles}[2]{body}, qr/bodie/);
+ok($brd->{articles}[2]{header}{From}, 'smart');
+ok(index($brd->{articles}[2]{header}{'Message-ID'}, '@'), 37);
 
 # alternative access
 
-ok($brd->{articles}{$brd->{articles}[2]{id}}{body}, qr/smart/);
+ok($brd->{articles}{$brd->{articles}[2]{id}}{body}, qr/bodie/);
 
 # set #1
 $brd->{articles}[1] = {title => 'changed title'};

@@ -1,28 +1,30 @@
 package OurNet::BBS::MAPLE3::Article;
+$VERSION = "0.1";
 
-$OurNet::BBS::MAPLE2::Article::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
-use fields qw/bbsroot board basepath name dir recno mtime btime _cache/;
+use fields qw/basepath board name dir hdrfile recno mtime btime _cache/;
+use subs qw/remove/;
+use File::stat;
+use POSIX;
 
-my $packsize   = OurNet::BBS::Base::getvar('ArticleGroup::packsize');
-my $packstring = OurNet::BBS::Base::getvar('ArticleGroup::packstring');
-my @packlist   = OurNet::BBS::Base::getvar('ArticleGroup::packlist');
+BEGIN {
+    __PACKAGE__->initvars(
+        'ArticleGroup' => [qw/$packsize $packstring @packlist/],
+    );
+}
 
 sub basedir {
     my $self = shift;
-    return join('/', $self->{bbsroot}, $self->{basepath},
-                     $self->{board}, $self->{dir});
+    return join('/', $self->{basepath}, $self->{board});
 }
 
 sub stamp {
     my $chrono = shift;
     my $str = '';
     for (1..7) {
-	print "[article] chrono: $chrono\n";
-	$str = ((0..9,'A'..'V')[$chrono & 31]) . $str;
-	$chrono >>= 5;
+        $str = ((0..9,'A'..'V')[$chrono & 31]) . $str;
+        $chrono >>= 5;
     }
     return 'A'.$str;
 }
@@ -30,11 +32,12 @@ sub stamp {
 sub new_id {
     my $self = shift;
     my ($chrono, $file, $fname);
-    
+
     $file = $self->basedir();
     
-    unless (-e "$file/.DIR") {
-        open _, ">$file/.DIR" or die "cannot create $file/.DIR";
+    unless (-e "$file/$self->{hdrfile}") {
+        open _, ">$file/$self->{hdrfile}" 
+	  or die "cannot create $file/$self->{hdrfile}}";
 	close _;
     }
 
@@ -44,20 +47,19 @@ sub new_id {
         last unless -e $fname;
         sleep 1;
     }
-    
+
     open _, ">$fname" or die "cannot open $fname";
     close _;
 
     return $chrono;
 }
 
-sub refresh_body {
+sub _refresh_body {
     my $self = shift;
 
     unless ($self->{name}) {
-	$self->{_cache}{time} = $self->new_id();
-	$self->{name} = stamp($self->{_cache}{time});
-die "new id $self->{time} $self->{name}\n";
+        $self->{_cache}{time} = $self->new_id();
+        $self->{name} = stamp($self->{_cache}{time});
     }
 
     my $file = join('/', $self->basedir, substr($self->{name}, -1), $self->{name});
@@ -66,32 +68,53 @@ die "new id $self->{time} $self->{name}\n";
                              and defined $self->{_cache}{body};
 
     $self->{btime} = stat($file)->mtime;
-    $self->{_cache}{date} ||= sprintf("%2d/%02d", (localtime($self->{btime}))[4] + 1, (localtime($self->{btime}))[3]);
+    $self->{_cache}{date} ||= sprintf("%02d/%2d/%02d", substr((localtime)[5]+1900, -2), (localtime($self->{btime}))[4] + 1, (localtime($self->{btime}))[3]);
 
     local $/;
     open _, $file or die "can't open DIR file for $self->{board}";
     $self->{_cache}{body} = <_>;
 
+    my %x;
+    my ($head, $body) = (index($self->{_cache}{body}, "\n\n") > -1)
+        ? split("\n\n", $self->{_cache}{body}, 2)
+	: ('', $self->{_cache}{body});
+
+    foreach (split("\n", $head)) {
+	$x{$1} = $2 if m/^([\w-]+): ([^\n]+)/ or return;# die "bad heaer";
+    }
+
+    $self->{_cache}{header} = \%x;
+    $self->{_cache}{body} = $body;
+    $self->{_cache}{header}{'Message-ID'} ||=
+	OurNet::BBS::Utils::get_msgid(@{$self->{_cache}{header}}
+				      {qw/Date From Board/});
     return 1;
+}
+
+sub refresh_body {
+    shift->_refresh_body;
+}
+
+sub refresh_header {
+    shift->_refresh_body;
 }
 
 sub refresh_meta {
     my $self = shift;
 
     unless ($self->{name}) {
-	$self->{_cache}{time} = $self->new_id();
-	$self->{name} = stamp($self->{_cache}{time});
+        $self->{_cache}{time} = $self->new_id();
+        $self->{name} = stamp($self->{_cache}{time});
     }
 
     my $file = join('/', $self->basedir, substr($self->{name}, -1), $self->{name});
     return unless -e $file;
     $self->{btime} = stat($file)->mtime;
 
-    $file = join('/', $self->basedir, '.DIR');
-
+    $file = join('/', $self->basedir, $self->{hdrfile});
     return if $self->{mtime} and stat($file)->mtime == $self->{mtime};
     $self->{mtime} = stat($file)->mtime;
-    
+
     local $/ = \$packsize;
     open DIR, "$file" or die "can't read DIR file for $self->{board}: $!";
     my $filesize = stat($file)->size;
@@ -105,9 +128,8 @@ sub refresh_meta {
             seek DIR, 0, 0;
         }
     }
-
     unless (defined $self->{recno}) {
-	seek DIR, 0, SEEK_END;
+        seek DIR, 0, SEEK_END;
         $self->{recno} = $filesize / $packsize;
         if ($self->{_cache}{id} ne $self->{name}) {
             $self->{_cache}{id} = $self->{name};
@@ -128,7 +150,6 @@ sub refresh_meta {
 
 sub STORE {
     my ($self, $key, $value) = @_;
-
     $self->refresh_meta($key);
 
     if ($key eq 'body') {
@@ -154,7 +175,7 @@ sub STORE {
 
         $self->{_cache}{$key} = $value;
 
-        my $file = join('/', $self->basedir, '.DIR');
+        my $file = join('/', $self->basedir, $self->{hdrfile});
         
 	open DIR, "+<$file" or die "cannot open $file for writing";
         # print "seeeking to ".($packsize * $self->{recno});
@@ -164,11 +185,11 @@ sub STORE {
         $self->{mtime} = stat($file)->mtime;
     }
 }
-
+=head1
 sub remove {
 die 'dont remove please';
     my $self = shift;
-    my $file = join('/', $self->basedir, '.DIR');
+    my $file = join('/', $self->basedir, $self->{hdrfile});
 
     open DIR, $file or die "cannot open $file for reading";
     # print "seeeking to ".($packsize * $self->{recno});
@@ -192,6 +213,6 @@ die 'dont remove please';
 
     return unlink join('/', $self->basedir, $self->{name});
 }
-
+=cut
 1;
 

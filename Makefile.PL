@@ -14,15 +14,17 @@ WriteMakefile(
     EXE_FILES       => [ <bin/*> ],
 
     PREREQ_PM       => {
-        'File::Path'            => '1.0403',     # test scripts
-        'RPC::PlClient'         => '0.2012',     # BBSCOM
-        'Net::Telnet'           => '3.02',       # BBSAgent
         'DB_File'               => '1.72',       # FuzzyIndex
-        'LWP::Protocol'         => '1.36',       # LWP::Protocol::bbs
-        'LWP::Parallel'         => '2.49',       # Query
+        'File::Path'            => '1.0403',     # test scripts
+        'HTML::FromText'        => '1.005',      # BBSApp::Templator
         'HTTP::Request::Common' => '1.16',       # Query
+        'LWP::Parallel'         => '2.49',       # Query
+        'LWP::Protocol'         => '1.36',       # LWP::Protocol::bbs
+        'Net::Telnet'           => '3.02',       # BBSAgent
+        'RPC::PlClient'         => '0.2012',     # BBSCOM
         'Template'              => '2.00',       # Template, WebBuilder
-    }, 
+        'XML::Simple'           => '1.04',       # XML::Simple
+    },
 
     dist            => {
 	'COMPRESS' => 'gzip',

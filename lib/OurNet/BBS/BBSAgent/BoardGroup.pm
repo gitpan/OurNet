@@ -1,13 +1,18 @@
 package OurNet::BBS::BBSAgent::BoardGroup;
+$VERSION = "0.1";
 
-# XXX BBSAgent support is highly experimental! DO NOT REPLY ON ME!
+# BBSAgent support is still considered experimental. please report bugs.
 
-$OurNet::BBS::BBSAgent::BoardGroup::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
-use fields qw/bbsroot bbsobj mtime _cache/;
+use fields qw/bbsroot login bbsobj mtime _cache/;
 use OurNet::BBSAgent;
+
+BEGIN {
+    __PACKAGE__->initvars(
+        '$Timeout' => 30,
+    )
+}
 
 # Fetch key: id savemode author date title filemode body
 sub refresh_meta {
@@ -18,11 +23,18 @@ sub refresh_meta {
         $self->{bbsobj} = OurNet::BBSAgent->new(OurNet::BBS::Utils::locate(
             "$self->{bbsroot}.bbs"
         ) || OurNet::BBS::Utils::locate(
-	    "../../BBSAgent/$self->{bbsroot}.bbs"
-        ), $OurNet::BBS::TIMEOUT || 30);
+            "../../BBSAgent/$self->{bbsroot}.bbs"
+        ), $Timeout);
+        
         $self->{bbsobj}{debug} = $OurNet::BBS::DEBUG;
-        $self->{bbsobj}->login('guest');
-        $self->{bbsobj}->main();
+        
+        if ($self->{login}) {
+            $self->{bbsobj}->login(split(':', $self->{login}, 2));
+            $self->{bbsobj}{var}{username} ||= (split(':', $self->{login}, 2))[0];
+        } else {
+            $self->{bbsobj}->login('guest');
+            $self->{bbsobj}{var}{username} ||= 'guest';
+        }
     }
 
     if ($key) {

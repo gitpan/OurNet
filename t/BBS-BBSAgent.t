@@ -8,7 +8,6 @@ BEGIN { plan tests => 2 }
 use OurNet::BBS;
 
 $OurNet::BBS::DEBUG++;
-$OurNet::BBS::DEBUG++;
 
 my $BBS;
 ok($BBS = OurNet::BBS->new('BBSAgent', 'openbazaar'));

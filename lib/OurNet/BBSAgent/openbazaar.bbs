@@ -191,6 +191,9 @@ till \e[31;47m (
 wait \e[m
 exit
 
+=board_article_fetch_last
+exit
+
 =logoff
 send eeeeeeeeeeee\nn\ny\ny\n\n\n
 

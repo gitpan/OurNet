@@ -1,10 +1,9 @@
 package OurNet::Site;
 require 5.005;
 
-$OurNet::Site::VERSION = '1.1';
+$OurNet::Site::VERSION = '1.2';
 
 use strict;
-use lib  qw/./;
 
 =head1 NAME
 
@@ -19,7 +18,7 @@ OurNet::Site - Extract web pages via templates
     my $found;
 
     # Create a bot
-    $bot = OurNet::Site->new('Altavista');
+    $bot = OurNet::Site->new('google');
 
     # Parse the result got from LWP::Simple
     $bot->callme($self, 0, get($bot->geturl($query, $hits)), \&callmeback);
@@ -30,15 +29,15 @@ OurNet::Site - Extract web pages via templates
     sub callmeback {
         my ($self, $himself) = @_;
 
-        foreach my $entry (@{$himself->{'response'}}) {
-            if ($entry->{'url'}) {
-                print "*** [$entry->{'title'}]" .
-                         " ($entry->{'score'})" .
-                       " - [$entry->{'id'}]\n"  .
-                 "    URL: [$entry->{'url'}]\n" .
-                       "    $entry->{'preview'}\n";
+        foreach my $entry (@{$himself->{response}}) {
+            if ($entry->{url}) {
+                print "*** [$entry->{title}]" .
+                         " ($entry->{score})" .
+                       " - [$entry->{id}]\n"  .
+                 "    URL: [$entry->{url}]\n" .
+                       "    $entry->{preview}\n";
                 $found++;
-                delete($entry->{'url'});
+                delete($entry->{url});
             }
         }
     }
@@ -52,11 +51,22 @@ Note that it also takes Inforia Quest .fmt scripts, available at
 http://www.inforian.com/. The author of course cannot support this
 usage.
 
+As per v1.2, Site.pm also accepts Template Toolkit format templates
+with extention '.tt2' as site descriptors, provided that it contains
+at least one C<[% FOREACH entry %]> block, and C<[% SET url.start %]>
+accordingly.
+
+Note that tt2 support is *highly* experimental and should not be
+relied upon until a more stable release comes.
+
 =head1 BUGS
 
 Probably lots. Most notably the 'More' facilities is lacking. Also
 there is no template-generating abilities. This is a must, but I
 couldn't find enough motivation to do it. Maybe you could.
+
+Currently, tt2 does not (quite) support incremental parsing in
+conjunction with L<OurNet::Query>.
 
 =cut
 
@@ -65,7 +75,7 @@ couldn't find enough motivation to do it. Maybe you could.
 # ---------------
 use fields qw/id charset proc expression template tempdata
               name info url var response category score
-              allow_partial allow_tags/;
+              allow_partial allow_tags tmplobj/;
 use vars qw/$myself/;
 
 # -----------------
@@ -95,16 +105,21 @@ sub new {
     (%{$self} = %{$file}, return $self) if UNIVERSAL::isa($file, 'HASH');
 
     unless (-e $file) {
-        (-e "$_[0].xml") ? do {
+        if (-e "$_[0].xml") {
             $file = "$_[0].xml";
-        } :
-        (-e "$_[0].fmt") ? do {
+        }
+        elsif (-e "$_[0].fmt") {
             $file = "$_[0].fmt";
-        } : do {
+        }
+        elsif (-e "$_[0].tt2") {
+            $file = "$_[0].tt2";
+        }
+        else {
             foreach my $inc (@INC) {
                 last if -e ($file = $inc . PATH_SITE . $_[0]);
                 last if -e ($file = $inc . PATH_SITE . "$_[0].xml");
                 last if -e ($file = $inc . PATH_SITE . "$_[0].fmt");
+                last if -e ($file = $inc . PATH_SITE . "$_[0].tt2");
             }
         };
     }
@@ -121,10 +136,12 @@ sub new {
 # ---------------------------------------
 sub geturl {
     my $self = shift;
-    my $url  = $self->{'url'}{'start'};
+    my $url  = $self->{url}{start};
 
     $url =~ s|_QUERY_|$_[0]|g;
     $url =~ s|_HITS_|$_[1]|g;
+    $url =~ s|\${  query  }|$_[0]|g;
+    $url =~ s|\${  hits  }|$_[1]|g;
 
     return $url;
 }
@@ -136,13 +153,20 @@ sub parse {
     my $self = shift;
     open(local *SITEFILE, $_[0]);
 
-    ($_[0] =~ m|\.xml$|i) ? do {
+    if ($_[0] =~ m|\.tt2$|i) {
+        local $/;
+        my $content = <SITEFILE>;
+        require OurNet::Template;
+        $self->{tmplobj} = OurNet::Template->new();
+        $self->{tmplobj}->extract($content, undef, $self);
+    }
+    elsif ($_[0] =~ m|\.xml$|i) {
         local $/;
         my $content = <SITEFILE>;
 
         my $xml_cdata_re = '(<!\[CDATA\[)?\015?\012?(.*?)\015?\012?(]]>)?';
 
-        $self->{'id'} = $1 if $content =~ m|<site id="(.*?)">|i;
+        $self->{id} = $1 if $content =~ m|<site id="(.*?)">|i;
 
         foreach my $tag ('charset', 'score', 'expression', 'template', 'proc') {
             $self->{$tag} = $2 if $content =~ m|<$tag>$xml_cdata_re</$tag>|is;
@@ -154,21 +178,21 @@ sub parse {
         }
 
         if ($content =~ m|<category>(.*?)</category>|i) {
-            $self->{'category'} = [ split(',', $1) ];
+            $self->{category} = [ split(',', $1) ];
         }
-    } :
-    ($_[0] =~ m|(?:.*[/\\])?(.*?)(?:\.fmt)?$|i) ? do {
-        $self->{'id'} = $1;
+    }
+    elsif ($_[0] =~ m|(?:.*[/\\])?(.*?)(?:\.fmt)?$|i) {
+        $self->{id} = $1;
 
-        chomp($self->{'name'}{'en-us'} = <SITEFILE>);
-        if ($self->{'name'}{'en-us'} =~ s|\((.+)\)||) {
-            $self->{'info'}{'en-us'} = $1;
+        chomp($self->{name}{'en-us'} = <SITEFILE>);
+        if ($self->{name}{'en-us'} =~ s|\((.+)\)||) {
+            $self->{info}{'en-us'} = $1;
         }
 
-        chomp($self->{'url'}{'start'} = <SITEFILE>);
-        if ($self->{'url'}{'start'} =~ m|_START_\d+_\d+_|) {
-            $self->{'url'}{'more'}  = $self->{'url'}{'start'};
-            $self->{'url'}{'start'} =~ s|_START_\d+_(\d+)_|$1|;
+        chomp($self->{url}{start} = <SITEFILE>);
+        if ($self->{url}{start} =~ m|_START_\d+_\d+_|) {
+            $self->{url}{more}  = $self->{url}{start};
+            $self->{url}{start} =~ s|_START_\d+_(\d+)_|$1|;
         }
 
         while (chomp($_ = <SITEFILE>)) {
@@ -176,52 +200,53 @@ sub parse {
                 last;
             } :
             (m|^\w+://|) ? do {
-                $self->{'url'}{'backup'} = $_;
+                $self->{url}{backup} = $_;
             } :
             (m|^MORE\t(.+)|) ? do {
-                $self->{'url'}{'more'} = $1;
+                $self->{url}{more} = $1;
             } :
             (m|^PROC\t(.+)|) ? do {
-                $self->{'proc'} = $1;
+                $self->{proc} = $1;
             } :
             (m|^VAR\t(.+)|) ? do {
-                $self->{'var'}{$1} = <SITEFILE> . $1 . <SITEFILE>;
-                $self->{'var'}{$1} =~ s|[\t\015\012]||g;
+                $self->{var}{$1} = <SITEFILE> . $1 . <SITEFILE>;
+                $self->{var}{$1} =~ s|[\t\015\012]||g;
             } :
             (m|^SCORE\t(.+)|) ? do {
-                $self->{'score'} = $1;
-                $self->{'score'} =~ s|\bx\b|_SCORE_|ig;
-                $self->{'score'} =~ s|\by\b|_RANK_|ig;
+                $self->{score} = $1;
+                $self->{score} =~ s|\bx\b|_SCORE_|ig;
+                $self->{score} =~ s|\by\b|_RANK_|ig;
             } :
             (m|^CHARSET\t(.+)|) ? do {
-                $self->{'charset'} = CHARSET_MAP->{uc($1)};
+                $self->{charset} = CHARSET_MAP->{uc($1)};
             } :
             (m|^CHT\t(.+)|) ? do {
-                $self->{'name'}{'zh-tw'} = $1;
-                $self->{'info'}{'zh-tw'} = $self->{'info'}{'en-us'};
+                $self->{name}{'zh-tw'} = $1;
+                $self->{info}{'zh-tw'} = $self->{info}{'en-us'};
             } :
             (m|^CHS\t(.+)|) ? do {
-                $self->{'name'}{'zh-cn'} = $1;
-                $self->{'info'}{'zh-cn'} = $self->{'info'}{'en-us'};
+                $self->{name}{'zh-cn'} = $1;
+                $self->{info}{'zh-cn'} = $self->{info}{'en-us'};
             } :
             (m|^EXPR\t(.+)|) ? do {
-                $self->{'expression'} = $1;
+                $self->{expression} = $1;
             } :
             (m|^TYPE\t(.+)|) ? do {
-                $self->{'category'} = $1;
+                $self->{category} = $1;
             } : undef;
         }
 
-        chomp($self->{'url'}{'home'} = <SITEFILE>);
-        chomp($self->{'template'} = <SITEFILE>);
+        chomp($self->{url}{home} = <SITEFILE>);
+        chomp($self->{template} = <SITEFILE>);
 
         while (chomp($_ = <SITEFILE>)) {
             next unless m|^[A-Z_]*$|;
 
-            $self->{'template'} .= $_ ? "_${_}_" : '___';
-            chomp($self->{'template'} .= <SITEFILE>);
+            $self->{template} .= $_ ? "_${_}_" : '___';
+            chomp($self->{template} .= <SITEFILE>);
         }
-    } : do {
+    }
+    else {
         die(ERROR_FORMAT . $_[0]);
     };
 
@@ -234,7 +259,15 @@ sub parse {
 sub contemplate {
     my ($self, $content) = @_;
 
-    my $template = _quote($self->{'template'});
+    if ($self->{tmplobj}) {
+        # tt2 support goes here
+        # XXX macros, etc incomplete
+        my $result = $self->{tmplobj}->extract(undef, $content);
+        push @{$self->{response}}, @{$result->{entry}};
+        return $self;
+    }
+
+    my $template = _quote($self->{template});
     my @vars     = map {lc($_)} ($template =~ m|_(\w+?)_|g); # slurp!
     my $length   = length($content);
     $template    =~ s|\015?\012?_\w+?_\015?\012?|(.*?)|g;
@@ -244,11 +277,11 @@ sub contemplate {
         last if $length == length($content); # infinite loop
         $length  = length($content);
 
-        my $rank = ($#{$self->{'response'}} + 2); # begins with 1
+        my $rank = ($#{$self->{response}} + 2); # begins with 1
 
-        push(@{$self->{'response'}}, {'rank' => $rank});
-        my $entry = $self->{'response'}[$rank - 1];
-        $entry->{'id'} = $self->{'id'};
+        push(@{$self->{response}}, {'rank' => $rank});
+        my $entry = $self->{response}[$rank - 1];
+        $entry->{id} = $self->{id};
 
         foreach my $idx (0 .. $#vars) {
             my ($var, $val) = ($vars[$idx], $vals[$idx]);
@@ -257,16 +290,16 @@ sub contemplate {
             next if $var eq '_';
 
             # Expand HTML entities
-            if (!$self->{'allow_tags'}) {
+            if (!$self->{allow_tags}) {
                 $val =~ s|@{[ENTITY_STRIP]}||gs;
                 $val =~ s|@{[ENTITY_LIST]}|ENTITY_MAP->{$1}|ge;
             }
 
-            ($var eq 'sizek') ? do {
-                $entry->{'size'} = $val * 1024;
-            } :
-            ($var eq 'score') ? do {
-                my $proc = $self->{'score'};
+            if ($var eq 'sizek') {
+                $entry->{size} = $val * 1024;
+            }
+            elsif ($var eq 'score') {
+                my $proc = $self->{score};
 
                 $proc =~ s|_RANK_|$rank|ig;
                 $proc =~ s|_SCORE_|$val|ig;
@@ -282,31 +315,32 @@ sub contemplate {
                     $compartment->share(qw/$rank $val $self/);
                     $entry->{$var} = $compartment->reval($proc);
                 }
-            } :
-            ($var eq 'url') ? do {
+            }
+            elsif ($var eq 'url') {
                 $entry->{$var} = $val;
 
                 if ($entry->{$var} !~ m|^\w+://|) {
-                    if ($self->{'url'}{'home'}) {
-                        $entry->{$var} = $self->{'url'}{'home'} . $entry->{$var};
+                    if ($self->{url}{home}) {
+                        $entry->{$var} = $self->{url}{home} . $entry->{$var};
                     }
-                    elsif (!$self->{'allow_partial'} and
-                           $self->{'url'}{'start'} =~ m|^(\w+://.*?)/|) {
+                    elsif (!$self->{allow_partial} and
+                           $self->{url}{start} =~ m|^(\w+://.*?)/|) {
                         $entry->{$var} = $1 . $entry->{$var};
                     }
                 }
-            } : do {
+            }
+            else {
                 $entry->{$var} = $val;
             };
         }
 
-        if (!$entry->{'score'}) {
-            my $proc = $self->{'score'};
+        if (!$entry->{score}) {
+            my $proc = $self->{score};
             $proc =~ s|_RANK_|\$rank|ig;
-            $entry->{'score'} = eval($proc);
+            $entry->{score} = eval($proc);
         }
 
-        if (my $proc = $self->{'proc'}) {
+        if (my $proc = $self->{proc}) {
             require Safe;
             $myself ||= $self;
 
@@ -314,7 +348,7 @@ sub contemplate {
             $compartment->share(qw/$myself/);
             $compartment->permit_only(qw/:base_core :base_mem pushre regcmaybe regcreset regcomp/);
 
-            $proc =~ s|_(\w+)_|\$myself->{'response'}[$rank - 1]{lc('$1')}|ig;
+            $proc =~ s|_(\w+)_|\$myself->{response}[$rank - 1]{lc('$1')}|ig;
             $compartment->reval($proc);
         }
     }
@@ -328,19 +362,20 @@ sub contemplate {
 # ----------------------------------------------------------
 sub callme {
     my ($self, $herself, $id, $data, $callback) = @_;
-    my $template = _quote($self->{'template'});
-
-    my $count    = $#{$self->{'response'}};
+    my $template = _quote($self->{template});
+    my $count    = $#{$self->{response}};
 
     # Append old ones
-    $self->{'tempdata'} = $data = $self->{'tempdata'} . $data;
+    $self->{tempdata} = $data = $self->{tempdata} . $data;
 
-    # Deep magic here
-    $template =~ s|\015?\012?_\w+?_\015?\012?|(.*?)|g;  # Find variables
-
-    $template = '^.*' . $template;
-
-    $self->{'tempdata'} =~ s|$template||is;
+    unless ($self->{tmplobj}) {
+        # Deep magic here
+        $template =~ s|\015?\012?_\w+?_\015?\012?|(.*?)|g;  # Find variables
+    
+        $template = '^.*' . $template;
+    
+        $self->{tempdata} =~ s|$template||is;
+    }
 
     if (defined $callback) {
         return &$callback($herself, $self->contemplate($data));

@@ -1,20 +1,19 @@
 package OurNet::BBS::MAPLE2::Session;
-
-$OurNet::BBS::MAPLE2::Session::VERSION = "0.1";
+$VERSION = "0.1";
 
 use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot recno shmid shm chatport registered myshm _cache/;
 use POSIX;
 
-my ($packsize, $packstring, @packlist);
+BEGIN {
+    __PACKAGE__->initvars(
+        'SessionGroup' => [qw/$packsize $packstring @packlist/],
+    );
+}
 
 sub refresh_meta {
     my ($self, $key) = @_;
-
-    $packsize   = $self->getvar('SessionGroup::packsize');
-    $packstring = $self->getvar('SessionGroup::packstring');
-    @packlist   = $self->getvar('SessionGroup::packlist');
 
     my $buf;
     shmread($self->{shmid}, $buf, $packsize*$self->{recno}, $packsize)
@@ -70,7 +69,7 @@ sub STORE {
     print "setting $key $value\n";
 
     if ($key eq 'msg') {
-	$self->{_cache}{msgs} = 
+	$self->{_cache}{msgs} =
 	    pack('LZ13Z80', getpid(), $value->[0], $value->[1]);
 	$self->{_cache}{msgcount}++;
 	kill SIGUSR2, $self->{_cache}{pid};

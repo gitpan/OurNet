@@ -176,7 +176,7 @@ exit
 call board 1,$[board]
 send $[article]\n\n
 #send \n
-till \x20\x20ÂsÄý\x20P.
+till m/\e\[([\d;]+)m\x20\x20ÂsÄý\x20P./
 wait (
 till \x20
 exit
@@ -185,13 +185,16 @@ exit
 send \x20
 wait \e[30mµ²§ô
 wait \e[0m
-till \x20\x20ÂsÄý\x20P.
+till m/\e\[([\d;]+)m\x20\x20ÂsÄý\x20P./
 wait (
 till \x20
 exit
 
 =logoff
 send eeeeeeeeeeee\nn\ny\ny\n\n\n
+
+=board_article_fetch_last
+exit
 
 =trimester_move
 call trimester_add $[to],$[board]

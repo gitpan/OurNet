@@ -4,16 +4,13 @@
 
 1.4 beta:
 - better-polished bin/bbscomd, including the ability to serve as proxy
-- bbscomd authentication model
-- scripts: bin/chatbot bin/fzindex bin/sitequery bin/fzquery
-- t/LWP-Protocol-bbs
+- bin/chatbot bin/fzindex bin/sitequery bin/fzquery
+- t/LWP-Protocol-bbs, perhaps to use .bbscomrc
 - A better README
 - WebBuilder.pm (selective Template)
 - bundle .bbs and sample chatbot and .xml
 - FuzzyIndex: purgemem, fix leaks
 - fix hardwired 'boards' and 'man' etc
-- session support for MAPLE2
-- PREREQ handling of PlRPC down
 
 1.4 release:
 

@@ -1,22 +1,25 @@
 package OurNet::BBS::MAPLE2::ArticleGroup;
+$VERSION = "0.1";
 
-$OurNet::BBS::MAPLE2::ArticleGroup::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot board basepath name dir recno mtime btime _cache _phash/;
-use vars qw/$packstring $packsize @packlist/;
+use File::stat;
 
-$packstring = 'Z33Z1Z14Z6Z73C';
-$packsize   = 128;
-@packlist   = qw/id savemode author date title filemode/;
+BEGIN {
+    __PACKAGE__->initvars(
+        '$packstring'    => 'Z33Z1Z14Z6Z73C',
+        '$packsize'      => 128,
+        '@packlist'      => [qw/id savemode author date title filemode/],
+    );
+}
 
 sub basedir {
     my $self = shift;
     return join('/', $self->{bbsroot}, $self->{basepath},
                      $self->{board}, $self->{dir});
 }
-			     
+
 sub new_id {
     my $self = shift;
     my ($id, $file);
@@ -194,8 +197,7 @@ sub STORE {
         $self->{mtime} = stat($file)->mtime;
     }
     else {
-        use Carp;
-        confess "STORE: attempt to store non-hash value ($value) into $key: ".ref($self)
+        die "STORE: attempt to store non-hash value ($value) into $key: ".ref($self)
             unless UNIVERSAL::isa($value, 'HASH');
 
         my $obj;
@@ -221,8 +223,24 @@ sub STORE {
             );
         }
 
+        use Mail::Address;
+        use Date::Parse;
+        use Date::Format;
+        
+        if (exists $value->{header}) {
+            my $adr = (Mail::Address->parse($value->{header}{From}))[0];
+            if (ref($adr)) {
+                $value->{author} = $adr->address;
+                $value->{nick}   = $adr->comment;
+            }
+            $value->{date}  = time2str('%m/%d', str2time($value->{header}{Date}));
+            $value->{date} =~ s/^0/ /; # how crude!
+
+            $value->{title} = $value->{header}{Subject};
+        }
+
         while (my ($k, $v) = each %{$value}) {
-	    $obj->{$k} = $v unless $k eq 'body' or $k eq 'id';
+            $obj->{$k} = $v unless $k eq 'body' or $k eq 'id';
         };
 
         $obj->{body} = $value->{body} if ($value->{body});

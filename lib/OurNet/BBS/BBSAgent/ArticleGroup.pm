@@ -1,10 +1,11 @@
 package OurNet::BBS::BBSAgent::ArticleGroup;
+$VERSION = "0.1";
 
-$OurNet::BBS::BBSAgent::ArticleGroup::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsobj board basepath _cache _phash/;
+
+BEGIN { __PACKAGE__->initvars() }
 
 # Fetch key: id savemode author date title filemode body
 sub refresh_meta {
@@ -54,7 +55,31 @@ sub refresh_meta {
 
 sub STORE {
     my ($self, $key, $value) = @_;
-    print "attempted STORE: @_\n";
+    my $body = << ".";
+作者: $value->{header}{From} 看板: $value->{header}{Board}
+標題: $value->{header}{Subject}
+時間: $value->{header}{Date}
+
+$value->{body}
+.
+
+    use Mail::Address;
+    my $author = (Mail::Address->parse($value->{header}{From}))[0]->user;
+
+    if ($author ne $self->{bbsobj}{var}{username}) {
+        $author =~ s/\..*//;
+        $author .= '.';
+    }
+    else {
+        $author = ''; # no need to change author
+    }
+
+    $self->{bbsobj}->article_post_raw(
+        $self->{board},
+	    $value->{header}{Subject},
+	    $body,
+	    $author,
+	);
 }
 
 sub EXISTS {

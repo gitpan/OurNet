@@ -1,6 +1,9 @@
 This is the README file for libOurNet, the collection of Perl modules
 by Elixir Group and OurInternet Inc.
 
+This documentation is *extremely* outdated -- you should consult
+OurNet.pm and each individual module's embedded PODs.
+
 * Installation
 
 libOurNet uses the standard perl module install process:

@@ -1,7 +1,7 @@
 package OurNet::BBSAgent;
 require 5.005;
 
-$OurNet::BBSAgent::VERSION = '1.1';
+$OurNet::BBSAgent::VERSION = '1.2';
 
 use strict;
 use lib qw/./;
@@ -21,10 +21,10 @@ OurNet::BBSAgent - Scriptable telnet-based virtual users
 
     my $cvic = new OurNet::BBSAgent('cvic.bbs', undef, 'testlog');
 
-    # $cvic->{'debug'} = 1; # Turn on for debugging
+    # $cvic->{debug} = 1; # Turn on for debugging
 
     $cvic->login($ARGV[0] || 'guest', $ARGV[1]);
-    print "now at $cvic->{'state'}";
+    print "now at $cvic->{state}";
     $cvic->Hook('balloon', \&callback);
     $cvic->Loop;
 
@@ -94,8 +94,12 @@ program. Each procedure is made by any number of following directives:
 =item   or STRING
 
 Tells the agent to wait until STRING is sent by remote host. Might time
-out after C<$self->{'timeout'}> seconds. Any trailing C<or> directives
+out after C<$self->{timeout}> seconds. Any trailing C<or> directives
 specifies an alternative string to match.
+
+If STRING is of format C<m/.*/[imsx]*>, it will be treated as a regular
+expression. This is an B<experimental> feature and the interface is
+subject to change.
 
 Additionally, C<till> puts anything between the last C<wait> or C<till>
 and STRING into the return list.
@@ -137,7 +141,7 @@ to procedure 'balloon', then enters a event loop by calling C<Loop>,
 which never terminates except when the agent receives '!quit' via the
 balloon procedure.
 
-The internal hook table could be accessed by $obj->{'hook'}. It is
+The internal hook table could be accessed by $obj->{hook}. It is
 implemented via a hash of hash of hash of lists -- Kids, don't try
 this at home!
 
@@ -157,20 +161,20 @@ sub new {
     my $self  = ($] > 5.00562) ? fields::new($class)
                                : do { no strict 'refs'; bless [\%{"$class\::FIELDS"}], $class };
 
-    $self->{'bbsfile'} = shift;
-    $self->{'timeout'} = shift;
+    $self->{bbsfile} = shift;
+    $self->{timeout} = shift;
 
-    die("Cannot find bbs definition file: $self->{'bbsfile'}")
-        unless -e $self->{'bbsfile'};
+    die("Cannot find bbs definition file: $self->{bbsfile}")
+        unless -e $self->{bbsfile};
 
-    open(local *_FILE, $self->{'bbsfile'});
+    open(local *_FILE, $self->{bbsfile});
 
-    chomp($self->{'bbsname'} = <_FILE>);
+    chomp($self->{bbsname} = <_FILE>);
     chomp(my $addr = <_FILE>);
 
     if ($addr =~ /^(.*?)(:\d+)?$/) {
-        $self->{'bbsaddr'} = $1;
-        $self->{'bbsport'} = substr($2, 1) || 23;
+        $self->{bbsaddr} = $1;
+        $self->{bbsport} = substr($2, 1) || 23;
     }
     else {
         die("Malformed location line: $addr");
@@ -182,36 +186,42 @@ sub new {
 
         if ($line =~ /^=(\w+)$/) {
             die("Duplicate definition on procedure $1")
-                if exists($self->{'proc'}{$1});
+                if exists($self->{proc}{$1});
 
-            $self->{'state'}    = $1;
-            $self->{'proc'}{$1} = [];
+            $self->{state}    = $1;
+            $self->{proc}{$1} = [];
         }
-        elsif ($line =~ /^\s*(doif|endo|goto|call|wait|send|else|till|exit)\s*(.*)$/) {
-            die('Not in a procedure') unless $self->{'state'};
+        elsif ($line =~ /^\s*(doif|endo|goto|call|wait|send|else|till|setv|exit)\s*(.*)$/) {
+            if (!$self->{state}) {
+                # directives must belong to procedures...
+                die('Not in a procedure') unless $1 eq 'setv';
 
-            push @{$self->{'proc'}{$self->{'state'}}}, $1, $2;
+                # ...but 'setv' is an exception.
+                my ($var, $val) = split(/\s/, $2, 2);
+                $self->{var}{$var} = $val;
+            }
+            push @{$self->{proc}{$self->{state}}}, $1, $2;
         }
         elsif ($line =~ /^\s*or\s*(.+)$/) {
-            die('Not in a procedure') unless $self->{'state'};
+            die('Not in a procedure') unless $self->{state};
             die('"or" directive not after a "wait" or "till"')
-                unless $self->{'proc'}{$self->{'state'}}->[-2] eq 'wait'
-                    or $self->{'proc'}{$self->{'state'}}->[-2] eq 'till';
+                unless $self->{proc}{$self->{state}}->[-2] eq 'wait'
+                    or $self->{proc}{$self->{state}}->[-2] eq 'till';
 
-            ${$self->{'proc'}{$self->{'state'}}}[-1] .= "\n$1";
+            ${$self->{proc}{$self->{state}}}[-1] .= "\n$1";
         }
         else {
             warn("Error parsing '$line'");
         }
     }
 
-    $self->{'netobj'} = Net::Telnet->new('Timeout' => $self->{'timeout'});
-    $self->{'netobj'}->open('Host' => $self->{'bbsaddr'},
-                            'Port' => $self->{'bbsport'});
-    $self->{'netobj'}->output_record_separator('');
-    $self->{'netobj'}->input_log($_[0]) if $_[0];
+    $self->{netobj} = Net::Telnet->new('Timeout' => $self->{timeout});
+    $self->{netobj}->open('Host' => $self->{bbsaddr},
+                          'Port' => $self->{bbsport});
+    $self->{netobj}->output_record_separator('');
+    $self->{netobj}->input_log($_[0]) if $_[0];
 
-    $self->{'state'} = '';
+    $self->{state} = '';
 
     return $self;
 }
@@ -225,14 +235,14 @@ sub Unhook {
     my $self = shift;
     my $sub  = shift;
 
-    if (exists $self->{'proc'}{$sub}) {
+    if (exists $self->{proc}{$sub}) {
         my ($state, %var);
-        my @proc = @{$self->{'proc'}{$sub}};
+        my @proc = @{$self->{proc}{$sub}};
 
         $state = $self->_chophook(\@proc, \%var, \@_);
 
-        print "Unhook $sub\n" if $self->{'debug'};
-        delete $self->{'hook'}{$state}{$sub};
+        print "Unhook $sub\n" if $self->{debug};
+        delete $self->{hook}{$state}{$sub};
     }
     else {
         die "Unhook: undefined procedure '$sub'";
@@ -249,15 +259,15 @@ sub Hook {
     my $self = shift;
     my ($sub, $callback) = splice(@_, 0, 2);
 
-    if (exists $self->{'proc'}{$sub}) {
+    if (exists $self->{proc}{$sub}) {
         my ($state, $wait, %var) = '';
-        my @proc = @{$self->{'proc'}{$sub}};
+        my @proc = @{$self->{proc}{$sub}};
 
         ($state, $wait) = $self->_chophook(\@proc, \%var, [@_]);
 
-        print "Hook $sub: State=$state, Wait=$wait\n" if $self->{'debug'};
+        print "Hook $sub: State=$state, Wait=$wait\n" if $self->{debug};
 
-        $self->{'hook'}{$state}{$sub} = [$sub, $wait, $callback, @_];
+        $self->{hook}{$state}{$sub} = [$sub, $wait, $callback, @_];
     }
     else {
         die "Hook: Undefined procedure '$sub'";
@@ -287,21 +297,21 @@ sub Loop {
 sub Expect {
     my $self    = shift;
     my $param   = shift;
-    my $timeout = shift || $self->{'timeout'};
+    my $timeout = shift || $self->{timeout};
 
-    if ($self->{'netobj'}->timeout() ne $timeout) {
-        $self->{'netobj'}->timeout($timeout);
-        print "Timeout change to $timeout\n" if $self->{'debug'};
+    if ($self->{netobj}->timeout() ne $timeout) {
+        $self->{netobj}->timeout($timeout);
+        print "Timeout change to $timeout\n" if $self->{debug};
     }
 
     my ($retval, $retkey, $key, $val, %wait);
 
-    while (($key, $val) = each %{$self->{'hook'}{$self->{'state'}}}) {
+    while (($key, $val) = each %{$self->{hook}{$self->{state}}}) {
         $wait{$val->[1]} = $val;
     }
 
-    if (defined $self->{'state'}) {
-        while (($key, $val) = each %{$self->{'hook'}{''}}) {
+    if (defined $self->{state}) {
+        while (($key, $val) = each %{$self->{hook}{''}}) {
             $wait{$val->[1]} = $val;
         }
     }
@@ -313,17 +323,23 @@ sub Expect {
     # Let's see the counts...
     my @keys = keys(%wait) or return;
 
-    print "Waiting: [",join(",", @keys),"]\n" if $self->{'debug'};
+    print "Waiting: [",join(",", @keys),"]\n" if $self->{debug};
 
     if (defined wantarray or $#keys) {
         eval {
             ($retval, $retkey) =
-                ($self->{'netobj'}->waitfor(map {('String' => $_)} @keys));
+                ($self->{netobj}->waitfor(map {
+                    m|^m/.*/[imsx]*$| ? ('Match' => $_)
+                                      : ('String' => $_)
+                } @keys));
         }
     }
     else {
         eval {
-            $self->{'netobj'}->waitfor(map {('String' => $_)} @keys);
+            $self->{netobj}->waitfor(map {
+                m|^m/.*/[imsx]*$| ? ('Match' => $_)
+                                  : ('String' => $_)
+            } @keys);
             $retkey = $keys[0];
         }
     }
@@ -403,12 +419,12 @@ sub AUTOLOAD {
 
     $sub =~ s/^.*:://;
 
-    if (exists $self->{'proc'}{$sub}) {
-        my @proc = @{$self->{'proc'}{$sub}};
+    if (exists $self->{proc}{$sub}) {
+        my @proc = @{$self->{proc}{$sub}};
         my @cond = 1;
         my (@result, %var);
 
-        print "Entering $sub ($params)\n" if $self->{'debug'};
+        print "Entering $sub ($params)\n" if $self->{debug};
 
         $self->_chophook(\@proc, \%var, \@_) if $flag;
 
@@ -424,7 +440,7 @@ sub AUTOLOAD {
                 next unless ($cond[-1]);
             };
 
-            if ($self->{'debug'}) {
+            if ($self->{debug}) {
                 my $pp = $param;
                 $pp =~ s/\$\[(.+?)\]/$var{$1} || ($var{$1} = shift)/eg;
                 print "*** $op $pp\n";
@@ -436,18 +452,28 @@ sub AUTOLOAD {
             $param =~ s/\\x([0-9a-fA-F][0-9a-fA-F])/chr(hex($1))/eg;
             $param =~ s/_!!!_/\x5c/g;
 
-            $param =~ s/\$\[(.+?)\]/$var{$1} || ($var{$1} = shift)/eg;
+            $param =~ s{\$\[(.+?)\]}{
+                $var{$1} || ($var{$1} = (exists $self->{var}{$1}
+                    ? $self->{var}{$1} : shift))
+            }eg unless $op eq 'call';
 
             if ($op eq 'doif') {
                 push(@cond, $param);
             }
             elsif ($op eq 'call') {
-                my $subparam = $1 if ($param =~ s/\s+(.*)//);
-                $self->$param(split(',', $subparam))
-                    unless $self->{'state'} eq "$param $subparam";
+                my @params = split(',', $param);
+                ($param, $params[0]) = split(/\s/, $params[0], 2);
+
+                s{\$\[(.+?)\]}{
+                    $var{$1} || ($var{$1} = (exists $self->{var}{$1}
+                        ? $self->{var}{$1} : shift))
+                }eg foreach @params;
+
+                $self->$param(@params)
+                    unless $self->{state} eq "$param ".join(',',@params);
             }
             elsif ($op eq 'goto') {
-                $self->$param() unless $self->{'state'} eq $param;
+                $self->$param() unless $self->{state} eq $param;
                 return wantarray ? @result : $result[0];
             }
             elsif ($op eq 'wait') {
@@ -459,23 +485,25 @@ sub AUTOLOAD {
                 return if $lastidx == $#result;
             }
             elsif ($op eq 'send') {
-                eval { $self->{'netobj'}->send($param) };
+                eval { $self->{netobj}->send($param) };
                 return if $@;
             }
             elsif ($op eq 'exit') {
-                $self->{'var'} = {};
                 $result[0] = '' unless defined $result[0];
                 return wantarray ? @result : $result[0];
+            }
+            elsif ($op eq 'setv') {
+                my ($var, $val) = split(/\s/, $params, 2);
+                $self->{var}{$var} = $val;
             }
             else {
                 die "No such operator: $op";
             }
         }
 
-        $self->{'var'}   = {};
-        $self->{'state'} = "$sub $params";
+        $self->{state} = "$sub $params";
 
-        print "Set State: $self->{'state'}\n" if $self->{'debug'};
+        print "Set State: $self->{state}\n" if $self->{debug};
         return wantarray ? @result : $result[0];
     }
     else {

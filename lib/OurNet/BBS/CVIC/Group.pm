@@ -1,10 +1,10 @@
 package OurNet::BBS::CVIC::Group;
+$VERSION = "0.1";
 
-$OurNet::BBS::CVIC::Group::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot group mtime _cache/;
+use File::stat;
 
 # Fetch key: id savemode author date title filemode body
 sub refresh_meta {

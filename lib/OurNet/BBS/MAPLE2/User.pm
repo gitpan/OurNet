@@ -1,10 +1,10 @@
 package OurNet::BBS::MAPLE2::User;
+$VERSION = "0.1";
 
-$OurNet::BBS::MAPLE2::User::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot id recno _cache/;
+use File::stat;
 
 sub refresh_meta {
     my $self = shift;

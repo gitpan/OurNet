@@ -89,44 +89,22 @@ else
 endo
 send \n
 
-=group
-call main
-send $[group]\n
-wait ¬ÝªO¦Cªí
-till \e[30;47m
-send 1\n
-
-=group_list_first
-call group $[group]
-send 1\npn
-wait \e[18;1H
-wait \e[30;47m
-till \x20
-exit
-
-=group_list_next
-send n
-wait \e[30;47m
-till \x20
-exit
-
 =board
-call group $[group]
-send /
-wait ¦WºÙ¡G
-send $[board]\n\n\x201\n\nq\n
+send s
+wait ¦WºÙ
+send $[board]\n\x20\nq\n
 wait ªO¥D¡G
 till ¤å³¹¿ïÅª
 
 =board_list_last
-call board $[group],$[board]
-send 1\np\nq\n
+call board $[board]
+send 1\n\x24
 wait ¡´
 till /
 exit
 
 =board_article_select
-call board $[group],$[board]
+call board $[board]
 send $[article]\n\nq\n
 wait ¡´
 till ¤å³¹¿ïÅª
@@ -139,21 +117,26 @@ till ¤å³¹¿ïÅª
 exit
 
 =board_article_fetch_first
-call board $[group],$[board]
+call board $[board]
 send $[article]\n\n
 #send \n
-till \x20\x20ÂsÄý\x20P.
+till m/\e\[m\e\[([\d;]+)m\x20\x20ÂsÄý\x20P./
 wait (
-till %)
+till )
+wait \e[30mµ²§ô\x20\x20\x20\e[m
 exit
 
 =board_article_fetch_next
 send \x20
-wait \e[30mµ²§ô
-wait \e[0m
-till \x20\x20ÂsÄý\x20P.
+till m/\e\[m\e\[([\d;]+)m\x20\x20ÂsÄý\x20P./
 wait (
-till %)
+till )
+wait \e[30mµ²§ô\x20\x20\x20\e[m
+exit
+
+=board_article_fetch_last
+send qq
+wait ¤å³¹¿ïÅª
 exit
 
 =chat_enter

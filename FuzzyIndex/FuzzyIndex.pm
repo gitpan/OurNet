@@ -6,7 +6,7 @@ $OurNet::FuzzyIndex::VERSION = '1.4';
 use strict;
 use integer;
 use lib qw/./;
-use DB_File qw/$DB_BTREE O_RDWR O_CREAT O_RDONLY/;
+use DB_File qw/$DB_BTREE/;
 use base qw/DynaLoader Exporter/;
 
 bootstrap OurNet::FuzzyIndex $OurNet::FuzzyIndex::VERSION;
@@ -109,6 +109,9 @@ use constant R_DUP       => DB_File::R_DUP();
 use constant R_NEXT      => DB_File::R_NEXT();
 use constant R_FIRST     => DB_File::R_FIRST();
 use constant R_CURSOR    => DB_File::R_CURSOR();
+use constant O_RDWR      => DB_File::O_RDWR();
+use constant O_RDONLY    => DB_File::O_RDONLY();
+use constant O_CREAT     => DB_File::O_CREAT();
 use constant DB_VERSION  => $DB_File::db_version;
 use constant MEM_WRITE   => 16_000_000;
 use constant MEM_READ    => 0;

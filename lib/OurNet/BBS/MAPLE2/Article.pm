@@ -1,14 +1,16 @@
 package OurNet::BBS::MAPLE2::Article;
+$VERSION = "0.1";
 
-$OurNet::BBS::MAPLE2::Article::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot board basepath name dir recno mtime btime _cache/;
+use File::stat;
 
-my $packsize   = OurNet::BBS::Base::getvar('ArticleGroup::packsize');
-my $packstring = OurNet::BBS::Base::getvar('ArticleGroup::packstring');
-my @packlist   = OurNet::BBS::Base::getvar('ArticleGroup::packlist');
+BEGIN {
+    __PACKAGE__->initvars(
+        'ArticleGroup' => [qw/$packsize $packstring @packlist/]
+    );
+}
 
 sub basedir {
     my $self = shift;
@@ -19,26 +21,26 @@ sub basedir {
 sub new_id {
     my $self = shift;
     my ($id, $file);
-    
+
     $file = $self->basedir();
-    
+
     unless (-e "$file/.DIR") {
         open _, ">$file/.DIR" or die "cannot create $file/.DIR";
-	close _;
+        close _;
     }
 
     while ($id = "M.".(scalar time).".A") {
-	last unless -e "$file/$id";
-	sleep 1;
+        last unless -e "$file/$id";
+        sleep 1;
     }
-    
+
     open _, ">$file/$id" or die "cannot open $file/$id";
     close _;
-    
+
     return $id;
 }
 
-sub refresh_body {
+sub _refresh_body {
     my $self = shift;
 
     $self->{name} ||= $self->new_id();
@@ -55,7 +57,37 @@ sub refresh_body {
     open _, $file or die "can't open DIR file for $self->{board}";
     $self->{_cache}{body} = <_>;
 
+    my ($from, $title, $date);
+    if ($self->{_cache}{body} =~ s/^作者: ([^ ]+) .*\n標題: (.*)\n時間: (.+)\n\n//) {
+        ($from, $title, $date) = ($1, $2, $3);
+    }
+    else {
+        $self->refresh_meta;
+    }
+
+    $self->{_cache}{header} = {
+        From         => $from  ||= (
+            $self->{_cache}{author} .
+            ($self->{_cache}{nick} ? " ($self->{_cache}{nick})" : '')
+        ),
+        Subject      => $title ||= $self->{_cache}{title},
+        Date         => $date  ||= scalar localtime($self->{btime}),
+        'Message-ID' => OurNet::BBS::Utils::get_msgid(
+            $date,
+            $from,
+            $self->{board},
+        ),
+    };
+
     return 1;
+}
+
+sub refresh_body {
+    shift->_refresh_body;
+}
+
+sub refresh_header {
+    shift->_refresh_body;
 }
 
 sub refresh_meta {
@@ -71,7 +103,7 @@ sub refresh_meta {
 
     return if $self->{mtime} and stat($file)->mtime == $self->{mtime};
     $self->{mtime} = stat($file)->mtime;
-    
+
     local $/ = \$packsize;
     open DIR, "$file" or die "can't read DIR file for $self->{board}: $!";
 
@@ -140,8 +172,8 @@ sub STORE {
         $self->{_cache}{$key} = $value;
 
         my $file = join('/', $self->basedir, '.DIR');
-        
-	open DIR, "+<$file" or die "cannot open $file for writing";
+
+        open DIR, "+<$file" or die "cannot open $file for writing";
         # print "seeeking to ".($packsize * $self->{recno});
         seek DIR, $packsize * $self->{recno}, 0;
         print DIR pack($packstring, @{$self->{_cache}}{@packlist});

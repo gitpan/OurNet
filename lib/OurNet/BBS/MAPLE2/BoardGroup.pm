@@ -1,17 +1,21 @@
 package OurNet::BBS::MAPLE2::BoardGroup;
+$VERSION = "0.1";
 
-$OurNet::BBS::MAPLE2::BoardGroup::VERSION = "0.1";
-
-use File::stat;
-use OurNet::BBS::ShmScalar;
-
+use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot shmkey maxboard shmid shm mtime _cache/;
-use vars qw/$packstring $packsize @packlist/;
+use OurNet::BBS::ShmScalar;
+use File::stat;
 
-$packstring = 'Z13Z49Z39Z11LZ3CLL';
-$packsize   = 128;
-@packlist   = qw/id title bm pad bupdate pad2 bvote vtime level/;
+BEGIN {
+    __PACKAGE__->initvars(
+        '$packstring'    => 'Z13Z49Z39Z11LZ3CLL',
+        '$packsize'      => 128,
+        '@packlist'      => [qw/id title bm pad bupdate pad2 bvote vtime level/],
+        '$BRD'           => '.BOARDS',
+
+    );
+}
 
 sub shminit {
     my $self = shift;
@@ -30,7 +34,7 @@ sub shminit {
 # Fetch key: id savemode author date title filemode body
 sub refresh_meta {
     my ($self, $key) = @_;
-    my $file = "$self->{bbsroot}/.BOARDS";
+    my $file = "$self->{bbsroot}/$BRD";
     my $board;
 
     $self->shminit unless ($self->{shmid} || !$self->{shmkey});
@@ -46,9 +50,10 @@ sub refresh_meta {
     }
 
     return if $self->{mtime} and stat($file)->mtime == $self->{mtime};
+
     $self->{mtime} = stat($file)->mtime;
 
-    open DIR, "$file" or die "can't read DIR file for $self->{board}: $!";
+    open DIR, "$file" or die "can't read DIR file $file $!";
 
     foreach (0..int(stat($file)->size / 128)-1) {
         seek DIR, 128 * $_, 0;
@@ -71,7 +76,7 @@ sub EXISTS {
     my ($self, $key) = @_;
     return 1 if exists ($self->{_cache}{$key});
 
-    my $file = "$self->{bbsroot}/.BOARDS";
+    my $file = "$self->{bbsroot}/$BRD";
     return 0 if $self->{mtime} and stat($file)->mtime == $self->{mtime};
 
     open DIR, $file or die "can't read DIR file $file: $!";

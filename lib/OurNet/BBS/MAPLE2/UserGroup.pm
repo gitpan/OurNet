@@ -1,11 +1,11 @@
 package OurNet::BBS::MAPLE2::UserGroup;
+$VERSION = "0.1";
 
-$OurNet::BBS::MAPLE2::UserGroup::VERSION = "0.1";
-
-use File::stat;
+use strict;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot shmkey maxuser shmid shm _cache _phash/;
 use OurNet::BBS::ShmScalar;
+use File::stat;
 
 # Fetch key: id savemode author date title filemode body
 sub refresh_meta {
@@ -13,7 +13,7 @@ sub refresh_meta {
 
     unless ($self->{shmid} || !$self->{shmkey}) {
         if ($^O ne 'MSWin32' and
-            $self->{shmid} = shmget($self->{shmkey}, 
+            $self->{shmid} = shmget($self->{shmkey},
 				    ($self->{maxuser})*13+16, 0)) {
             # print "key: $self->{shmkey}\n";
             # print "maxuser: $self->{maxuser}\n";
@@ -29,7 +29,7 @@ sub refresh_meta {
                 $self->{shmid}, $self->{maxuser}*13+12, 4, 'L';
         }
     }
-    
+
     my $name;
     if ($key) {
         if (length($key) and $arrayfetch) {
@@ -40,12 +40,12 @@ sub refresh_meta {
         elsif ($key) {
             # key fetch
             return if $self->{_phash}[0][0]{$key};
-        
+
             my $buf;
             $name = $key;
             $key = '';
 
-            foreach $rec (1..$self->{maxuser}) {
+            foreach my $rec (1..$self->{maxuser}) {
                 shmread($self->{shmid}, $buf, 13 * $rec, 13);
                 # print "$buf\n";
                 if ($name eq unpack('Z13', $buf)) {
@@ -59,18 +59,18 @@ sub refresh_meta {
     else {
         # $key = $self->{maxuser}++;
     }
-    
-    print "new $name $key\n"; 
-    
+
+    print "new $name $key\n";
+
     my $obj = $self->module('User')->new(
         $self->{bbsroot},
         $name,
         $key, # XXX -1?
     );
-    
+
     $self->{_phash}[0][0]{$name} = $key;
     $self->{_phash}[0][$key] = $obj;
-    
+
     return 1;
 }
 1;

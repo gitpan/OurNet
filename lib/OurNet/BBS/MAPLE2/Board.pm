@@ -1,15 +1,16 @@
 package OurNet::BBS::MAPLE2::Board;
-
-$OurNet::BBS::MAPLE2::Board::VERSION = "0.1";
+$VERSION = "0.1";
 
 use strict;
-use File::stat;
 use base qw/OurNet::BBS::Base/;
 use fields qw/bbsroot board shmid shm recno mtime _cache/;
+use File::stat;
 
-my $packsize   = OurNet::BBS::Base::getvar('BoardGroup::packsize');
-my $packstring = OurNet::BBS::Base::getvar('BoardGroup::packstring');
-my @packlist   = OurNet::BBS::Base::getvar('BoardGroup::packlist');
+BEGIN {
+    __PACKAGE__->initvars(
+        'BoardGroup' => [qw/$BRD $packsize $packstring @packlist/],
+    );
+}
 
 sub refresh_articles {
     my $self = shift;
@@ -45,12 +46,12 @@ sub refresh_meta {
         return 1;
     }
 
-    my $file = "$self->{bbsroot}/.BOARDS";
+    my $file = "$self->{bbsroot}/$BRD";
     return if $self->{mtime} and stat($file)->mtime == $self->{mtime};
     $self->{mtime} = stat($file)->mtime;
 
     local $/ = \$packsize;
-    open DIR, $file or die "can't read .BOARDS: $!";
+    open DIR, $file or die "can't read $BRD: $!";
 
     if (defined $self->{recno}) {
         seek DIR, $packsize * $self->{recno}, 0;
@@ -84,7 +85,7 @@ sub refresh_meta {
             open DIR, ">$self->{bbsroot}/man/boards/$self->{board}/.DIR";
             close DIR;
 
-            open DIR, ">>$file" or die "can't write .BOARDS file for $self->{board}: $!";
+            open DIR, ">>$file" or die "can't write $BRD file for $self->{board}: $!";
 
             local $^W = 0; # turn off uninitialized warnings
             print DIR pack($packstring, @{$self->{_cache}}{@packlist});
@@ -106,14 +107,19 @@ sub STORE {
 
     return if (index(' '.join(' ', @packlist).' ', " $key ") == -1);
 
-    my $file = "$self->{bbsroot}/.BOARDS";
+    my $file = "$self->{bbsroot}/$BRD";
     open DIR, "+<$file" or die "cannot open $file for writing";
     # print "seeeking to ".($packsize * $self->{recno});
     seek DIR, $packsize * $self->{recno}, 0;
     print DIR pack($packstring, @{$self->{_cache}}{@packlist});
     close DIR;
     $self->{mtime} = stat($file)->mtime;
-    $self->{shm}{touchtime} = time() if exists $self->{shm};
+    $self->shmtouch() if exists $self->{shm};
+}
+
+sub shmtouch {
+    my $self = shift;
+    $self->{shm}{touchtime} = time();
 }
 
 sub remove {

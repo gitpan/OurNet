@@ -1,5 +1,21 @@
 #!/usr/bin/perl
 
+=head1 NAME
+
+fzindex - index wrapper around OurNet::FuzzyIndex
+
+=head1 SYNOPSIS
+
+    % fzindex index.db *.txt
+
+=head1 DESCRIPTION
+
+Just run fzindex at command line. The first argument is the db file
+to store index results, remaining arguments being glob patterns of
+files to be indexed.
+
+=cut
+
 use OurNet::FuzzyIndex;
 
 local $/;

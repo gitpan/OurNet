@@ -1,24 +1,33 @@
 package OurNet::BBS::MAPLE3::ArticleGroup;
 $VERSION = "0.1";
 
+# hdrfile for the upper level hdr file holding metadata of this level
+# idxfile for hdr of the deeper level that this articlegroup is holding.
 use strict;
-#use base qw/OurNet::BBS::MAPLE2::ArticleGroup/;
-#use fields qw/_cache _phash/;
-use File::stat;
 use base qw/OurNet::BBS::Base/;
-use fields qw/bbsroot board basepath name dir recno mtime btime _cache _phash/;
-use vars qw/$packstring $packsize @packlist/;
+use fields qw/basepath board name dir hdrfile idxfile recno mtime btime _cache _phash/;
+use File::stat;
 
-$packstring = 'LLLZ32Z80Z50Z9Z73';
-$packsize   = 256;
-@packlist   = qw/time xmode xid id author nick date title/;
+use constant GEM_FOLDER		=> 0x00010000;
+use constant GEM_BOARD		=> 0x00020000;
+use constant GEM_GOPHER		=> 0x00040000;
+use constant GEM_HTTP		=> 0x00080000;
+use constant GEM_EXTEND		=> 0x80000000;
 
-1;
+BEGIN {
+    __PACKAGE__->initvars(
+        '$packstring' => 'LLLZ32Z80Z50Z9Z73',
+        '$packsize'   => 256,
+        '@packlist'   => [qw/time xmode xid id author nick date title/],
+    );
+}
 
 sub basedir {
     my $self = shift;
-    return join('/', $self->{bbsroot}, $self->{basepath},
-                     $self->{board}, $self->{dir});
+
+#print "$self->{basepath}, $self->{board}\n";
+
+    return join('/', $self->{basepath}, $self->{board});
 }
 
 sub stamp {
@@ -46,11 +55,8 @@ sub new_id {
 
 sub refresh_id {
     my ($self, $key) = @_;
-die "$self: refresh $key\n";
     $self->{name} ||= $self->new_id();
-
-    my $file = join('/', $self->basedir(), '.DIR');
-
+    my $file = join('/', $self->basedir(), $self->{hdrfile});
     return if $self->{btime} and stat($file)->mtime == $self->{btime}
               and defined $self->{recno};
 
@@ -58,7 +64,6 @@ die "$self: refresh $key\n";
 
     local $/ = \$packsize;
     open DIR, "$file" or die "can't read DIR file for $self->{board}: $!";
-
     if (defined $self->{recno}) {
         seek DIR, $packsize * $self->{recno}, 0;
         @{$self->{_cache}}{@packlist} = unpack($packstring, <DIR>);
@@ -77,18 +82,17 @@ die "$self: refresh $key\n";
             $self->{recno}++;
         }
         if ($self->{_cache}{id} ne $self->{name}) {
-            # die "not supposed to be here: $self->{_cache}{id}, $self->{name}";
             $self->{_cache}{id} = $self->{name};
+	    $self->{_cache}{xmode} = GEM_FOLDER;
             $self->{_cache}{author}   ||= 'guest.';
-            $self->{_cache}{date}     = sprintf("%2d/%02d", (localtime)[4] + 1, (localtime)[3]);
+            $self->{_cache}{date}     = sprintf("%02d/%02d/%02d", substr((localtime)[5]+1900, -2), (localtime)[4] + 1, (localtime)[3]);
             $self->{_cache}{title}    = '¡» (untitled)';
             $self->{_cache}{filemode} = 0;
             open DIR, "+>>$file" or die "can't write DIR file for $self->{board}: $!";
             print DIR pack($packstring, @{$self->{_cache}}{@packlist});
             close DIR;
 
-            mkdir join('/', $self->basedir(), $self->{name});
-            open DIR, ">".join('/', $self->basedir(), '.DIR');
+	    open DIR, ">".join('/', $self->basedir(), substr($self->{name}, -1), $self->{name});
             close DIR;
 
             # print "Recno: ".$self->{recno}."\n";
@@ -102,9 +106,8 @@ die "$self: refresh $key\n";
 sub refresh_meta {
     my ($self, $key) = @_;
 
-    local $^W = 0; # turn off warnings
-
-    my $file = join('/', $self->basedir(), $self->{name}, '.DIR');
+#    local $^W = 0; # turn off warnings
+    my $file = join('/', $self->basedir(), $self->{idxfile});
     my $name;
 
     if ($key and index(' '.join(' ',@packlist).' ', " $key ") > -1) {
@@ -113,17 +116,16 @@ sub refresh_meta {
     elsif (!defined($key) and $self->{dir}) {
         $self->refresh_id;
     }
-    if ($key and $key ne int($key)) {
+    if ($key and !($key =~ /^\d+$/)) {
         # hash key -- no recaching needed
         return if $self->{_phash}[0][0]{$key};
-
         my $obj = $self->module(substr($key, 0, 2) eq 'D.'
             ? 'ArticleGroup' : 'Article')->new(
-                $self->{bbsroot},
-                $self->{board},
                 $self->{basepath},
+                $self->{board},
                 $key,
                 "$self->{dir}/$self->{name}",
+		'.DIR',
             );
 
         $self->{_phash}[0][0]{$key} = $obj->recno+1;
@@ -136,24 +138,27 @@ sub refresh_meta {
 
     if ($key) {
         # out-of-bound check
-        return if $key < 1 or $key > int(stat($file)->size / $packsize);
+        die 'no such article' if $key < 1 || $key > int(stat($file)->size / $packsize);
 
+	my (%param, %foo);
         seek DIR, $packsize * ($key-1), 0;
-        read DIR, $name, 44;
-        $name = unpack('x12Z32', $name);
-        # print "$name unpacked\n";
-        return if $self->{_phash}[0][0]{$name} == $key;
+	local $/ = \$packsize;
+	@foo{@packlist} = unpack($packstring, <DIR>);
+        $name = $foo{id};
+#        return if $self->{_phash}[0][0]{$name} == $key;
 
-        my $obj = $self->module(substr($name, 0, 2) eq 'D.'
-            ? 'ArticleGroup' : 'Article')->new(
-                $self->{bbsroot},
-                $self->{board},
-                $self->{basepath},
-                $name,
-                "$self->{dir}/$self->{name}",
-                $key-1,
-            );
-
+	$param{idxfile}	= substr($foo{id},-1)."/$foo{id}"
+	  if $foo{xmode} & GEM_FOLDER;
+        my $obj = $self->module(($foo{xmode} & GEM_FOLDER)
+            ? 'ArticleGroup' : 'Article')->new
+	      ({
+		board	=> $self->{board},
+		basepath=> $self->{basepath},
+		name	=> $name,
+		hdrfile	=> $self->{idxfile},
+		recno	=> $key-1,
+		%param
+	       });
         $self->{_phash}[0][0]{$name} = $key;
         $self->{_phash}[0][$key] = $obj;
 
@@ -164,19 +169,26 @@ sub refresh_meta {
     return if $self->{mtime} and stat($file)->mtime == $self->{mtime};
     $self->{mtime} = stat($file)->mtime;
     $self->{_phash}[0] = fields::phash(map {
-        seek DIR, $packsize * $_, 0;
-        read DIR, $name, 44;
-        $name = unpack('x12Z32', $name);
+	my (%param, %foo);
+        seek DIR, $packsize * ($_), 0;
+	local $/ = \$packsize;
+	@foo{@packlist} = unpack($packstring, <DIR>);
+        $name = $foo{id};
         # return the thing
-        ($name, $self->module(substr($name, 0, 2) eq 'D.'
-            ? 'ArticleGroup' : 'Article')->new(
-                $self->{bbsroot},
-                $self->{board},
-                $self->{basepath},
-                $name,
-                "$self->{dir}/$self->{name}",
-                $_,
-        ));
+	$param{idxfile}	= substr($foo{id},-1)."/$foo{id}"
+	  if $foo{xmode} & GEM_FOLDER;
+
+        ($name, $self->module(($foo{xmode} & GEM_FOLDER)
+            ? 'ArticleGroup' : 'Article')->new
+	 ({
+	  board		=> $self->{board},
+	  basepath	=> $self->{basepath},
+	  name		=> $name,
+	  hdrfile	=> $self->{idxfile},
+	  recno		=> $_,
+	  %param,
+	  })
+        );
     } (0..int(stat($file)->size / $packsize)-1));
 
     close DIR;
@@ -186,7 +198,6 @@ sub refresh_meta {
 
 sub STORE {
     my ($self, $key, $value) = @_;
-
     local $^W = 0; # turn off warnings
 
     if ($key and index(' '.join(' ', @packlist).' ', " $key ") > -1) {
@@ -219,22 +230,21 @@ sub STORE {
             my $module = "$class.pm";
             $module =~ s|::|/|g;
             require $module;
-
-            $obj = $class->new(
-                $self->{bbsroot},
-                $self->{board},
-                $self->{basepath},
-                undef,
-                "$self->{dir}/$self->{name}",
-                int($key) ? $key - 1 : undef,
-            );
+            $obj = $class->new
+	      ({
+                basepath=> $self->{basepath},
+                board	=> $self->{board},
+                name	=> "$self->{name}",
+		hdrfile	=> $self->{idxfile},
+                recno	=> int($key) ? $key - 1 : undef,
+	       });
         }
 
         while (my ($k, $v) = each %{$value}) {
 	    $obj->{$k} = $v unless $k eq 'body' or $k eq 'id';
         };
 
-        $obj->{body} = $value->{body} if ($value->{body});
+        $obj->{body} = $value->{body} || "\n";
         $self->refresh($key);
     }
 }

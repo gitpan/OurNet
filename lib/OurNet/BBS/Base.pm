@@ -1,24 +1,90 @@
 package OurNet::BBS::Base;
+$VERSION = '0.1';
+
 use strict;
+
+sub initvars {
+    no strict 'refs';
+
+    my $class = shift;
+    my $backend = $1 if scalar caller() =~ m|^OurNet::BBS::(\w+)|;
+    my ($ch, $sym);
+    # print "initing: $class\n";
+
+    # inheritance magic
+    foreach my $parent (@{"${class}::ISA"}) {
+        next if $parent eq __PACKAGE__;
+
+        while (my ($sym, $ref) = each (%{"${parent}::"})) {
+            unless (defined *{"${class}::$sym"}) {
+                # print "importing $sym\n";
+                *{"${class}::$sym"} = $ref;
+            }
+        }
+        # print "\n";
+    }
+
+
+    while (my ($mod, $symref) = splice(@_, 0, 2)) {
+        if ($mod =~ m/^\w/) { # getvar
+            require "OurNet/BBS/$backend/$mod.pm";
+            $mod = "OurNet::BBS::${backend}::${mod}";
+
+            while ($sym = shift(@{$symref})) {
+                ($ch, $sym) = unpack('a1a*', $sym);
+                *{"${class}::$sym"} = (
+                    $ch eq "\$" ? \$   {"${mod}::$sym"} :
+                    $ch eq "\@" ? \@   {"${mod}::$sym"} :
+                    $ch eq "\%" ? \%   {"${mod}::$sym"} :
+                    $ch eq "\*" ? \*   {"${mod}::$sym"} :
+                    $ch eq "\&" ? \&   {"${mod}::$sym"} : ''
+                );
+            }
+        }
+        else { # setvar
+            ($ch, $sym) = unpack('a1a*', $mod);
+            *{"${class}::$sym"} = (
+                $ch eq "\$" ? \$   {"${class}::$sym"} :
+                $ch eq "\@" ? \@   {"${class}::$sym"} :
+                $ch eq "\%" ? \%   {"${class}::$sym"} :
+                $ch eq "\*" ? \*   {"${class}::$sym"} :
+                $ch eq "\&" ? \&   {"${class}::$sym"} : ''
+            );
+            if ($ch eq "\$") {
+                ${"${class}::$sym"} = $symref;
+            }
+            elsif ($ch eq "\@") {
+                @{"${class}::$sym"} = @{$symref};
+            }
+            elsif ($ch eq "\%") {
+                %{"${class}::$sym"} = %{$symref};
+            }
+            else {
+                die "cannot expand symbol: $sym";
+            }
+        }
+    }
+}
+
 
 sub getvar {
     my $backend;
-    
+
     if (ref($_[0])) {
         $backend = (+shift)->backend();
     }
     else {
         $backend = $1 if scalar caller() =~ m|^OurNet::BBS::(\w+)|;
     }
- 
+
     my ($mod, $var) = split('::', $_[0], 2);
     no strict 'refs';
     require "OurNet/BBS/$backend/$mod.pm";
     return wantarray ? @{"OurNet::BBS::${backend}::${mod}::${var}"}
 #                   || %{"OurNet::BBS::${backend}::${mod}::${var}"}
                      : ${"OurNet::BBS::${backend}::${mod}::${var}"};
-} 
-    
+}
+
 
 sub daemonize {
     require OurNet::BBS::PlServer;
