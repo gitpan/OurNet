@@ -13,11 +13,11 @@ WriteMakefile(
     VERSION_FROM    => 'OurNet.pm',
 
     PREREQ_PM       => {
-        'OurNet::FuzzyIndex'    => '1.5',
-        'OurNet::Site'          => '1.2',
-        'OurNet::BBS'           => '1.5',
-        'OurNet::BBSAgent'      => '1.5',
-        'OurNet::BBSApp'        => '0.01',
+        'OurNet::FuzzyIndex'    => '1.51',
+        'OurNet::Site'          => '1.21',
+        'OurNet::BBS'           => '1.51',
+        'OurNet::BBSAgent'      => '1.51',
+        'OurNet::BBSApp'        => '0.02',
     },
 
     dist            => {

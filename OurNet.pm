@@ -1,7 +1,7 @@
 package OurNet;
 require 5.005;
 
-$OurNet::VERSION = '1.5';
+$OurNet::VERSION = '1.51';
 
 use strict;
 
