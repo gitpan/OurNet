@@ -1,18 +1,17 @@
+# $File: //depot/libOurNet/test.pl $ $Author: autrijus $
+# $Revision: #2 $ $Change: 2112 $ $DateTime: 2001/10/17 05:42:55 $
 #!/usr/bin/perl -w
+
 use strict;
-use Test;
+use constant MODULES => [
+    qw/BBS BBSAgent BBSApp::Sync Query Site Template FuzzyIndex ChatBot/
+];
+use Test::More tests => @{+MODULES} + 1;
 
-BEGIN {
-    my @modules = qw/BBS BBSApp BBSAgent ChatBot FuzzyIndex
-		    Query Site Template WebBuilder/;
+use_ok('OurNet');
 
-    plan tests => @modules + 1;
-
-    use OurNet;
-    ok(1);
-
-    foreach my $mod (@modules) {
-	eval "use OurNet::$mod";
-	ok(!$@);
-    }
+foreach my $mod (@{+MODULES}) {
+    use_ok("OurNet::$mod");
 }
+
+__END__

@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+# $File: //depot/libOurNet/Makefile.PL $ $Author: autrijus $
+# $Revision: #14 $ $Change: 2112 $ $DateTime: 2001/10/17 05:42:55 $
 
 require 5.005;
 
@@ -13,11 +15,23 @@ WriteMakefile(
     VERSION_FROM    => 'OurNet.pm',
 
     PREREQ_PM       => {
-        'OurNet::FuzzyIndex'    => '1.52',
-        'OurNet::Site'          => '1.52',
-        'OurNet::BBS'           => '1.52',
-        'OurNet::BBSAgent'      => '1.52',
-        'OurNet::BBSApp'        => '0.03',
+	# prerequisites
+        'ExtUtils::AutoInstall'	=> '0.01',
+
+	# the BBS Toolkit
+        'OurNet::BBS'		=> '1.62',
+        'OurNet::BBSAgent'	=> '1.58',
+        'OurNet::BBSApp::Sync'	=> '0.87',
+
+	# the Query Toolkit
+        'OurNet::Query'		=> '0.01',
+        'OurNet::Site'		=> '0.01',
+        'OurNet::Template'	=> '0.01',
+        'OurNet::FuzzyIndex'	=> '0.01',
+        'OurNet::ChatBot'	=> '0.01',
+
+	# 'OurNet::BBSApp'	=> '1.60', # not ready
+	# 'Slash::OurNet'	=> '0.01', # not ready
     },
 
     dist            => {
